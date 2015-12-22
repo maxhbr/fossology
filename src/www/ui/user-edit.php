@@ -17,7 +17,7 @@
  ***********************************************************/
 
 class user_edit extends FO_Plugin {
-  
+
   public function __construct()
   {
     $this->Name = "user_edit";
@@ -31,12 +31,12 @@ class user_edit extends FO_Plugin {
 
   /**
    * \brief Display the user record edit form
-   * 
+   *
    * \param $UserRec - Database users record for the user to be edited.
    * \param $SessionIsAdmin - Boolean: This session is by an admin
    * \return the text of the display form on success, or error on failure.
    */
-  function DisplayForm($UserRec, $SessionIsAdmin) 
+  function DisplayForm($UserRec, $SessionIsAdmin)
   {
     global $PG_CONN;
     $OutS = "";  // Output string
@@ -52,13 +52,17 @@ class user_edit extends FO_Plugin {
       $OutS .= "<select name='userid' onchange='RefreshPage(this.value);'>\n";
     }
 
-    /* For Admins, get the list of all users 
+    /* For Admins, get the list of all users
      * For non-admins, only show themself
      */
     if ($SessionIsAdmin)
+    {
       $sql = "SELECT * FROM users ORDER BY user_name;";
+    }
     else
+    {
       $sql = "SELECT * FROM users WHERE user_pk='" . $UserRec['user_pk'] . "' ORDER BY user_name;";
+    }
     $result = pg_query($PG_CONN, $sql);
     DBCheckResult($result, $sql, __FILE__, __LINE__);
     while ($row = pg_fetch_assoc($result))
@@ -180,10 +184,10 @@ class user_edit extends FO_Plugin {
   /**
    * \brief Validate and update the user data.
    * \param $UserRec - Database record for the user to be edited.
-   * 
+   *
    * \return NULL on success, string (error text) on failure.
    */
-  function UpdateUser($UserRec, $SessionIsAdmin) 
+  function UpdateUser($UserRec, $SessionIsAdmin)
   {
     global $PG_CONN;
 
@@ -228,7 +232,7 @@ class user_edit extends FO_Plugin {
       unset( $UserRec['user_pass']);
       unset( $UserRec['user_seed']);
     }
-    
+
     /* Build the sql update */
     $sql = "UPDATE users SET ";
     $first = TRUE;
@@ -236,7 +240,7 @@ class user_edit extends FO_Plugin {
     {
       if ($key[0] == '_') continue;
       if ($key == "user_pk") continue;
-      if (!$SessionIsAdmin) 
+      if (!$SessionIsAdmin)
       {
         if ($key == "user_perm") continue;
         if ($key == "root_folder_fk") continue;
@@ -257,10 +261,10 @@ class user_edit extends FO_Plugin {
   /**
    * \brief Get a user record
    * \param $user_pk  fetch this users db record
-   * 
+   *
    * \return users db record
    */
-  function GetUserRec($user_pk) 
+  function GetUserRecord($user_pk)
   {
     if (empty($user_pk))
     {
@@ -277,32 +281,32 @@ class user_edit extends FO_Plugin {
 
   /**
    * \brief Determine if the session user is an admin
-   * 
+   *
    * \return TRUE if the session user is an admin.  Otherwise, return FALSE
    */
-  function IsSessionAdmin($UserRec) 
+  function IsSessionAdmin($UserRec)
   {
     if ($UserRec['user_perm'] == PLUGIN_DB_ADMIN) return TRUE;
     return FALSE;
   }
 
   /**
-   * \brief Create a user record.
+   * \brief Create / compose a user record from POST data.
    * \param integer $user_pk: If empty, use form data
-   * 
+   *
    * \return A user record in the same associated array format that you get from a pg_fetch_assoc().
-   *         However, there may be additional fields from the data input form that are not in the 
+   *         However, there may be additional fields from the data input form that are not in the
    *         users table.  These additional fields start with an underscore (_pass1, _pass2, _blank_pass)
    *         that come from the edit form.
    */
-  function CreateUserRec($user_pk="") 
+  function ComposeUserRecord($user_pk="")
   {
     /* If a $user_pk was given, use it to read the user db record.
      * Otherwise, use the form data.
      */
-    if (!empty($user_pk)) 
+    if (!empty($user_pk))
     {
-      $UserRec = $this->GetUserRec($user_pk);
+      $UserRec = $this->GetUserRecord($user_pk);
       $UserRec['_pass1'] = "";
       $UserRec['_pass2'] = "";
       $UserRec['_blank_pass'] = ($UserRec['user_pass'] == sha1($UserRec['user_seed'] . "")) ? "on" : "";
@@ -330,7 +334,7 @@ class user_edit extends FO_Plugin {
         if (empty($UserRec['_blank_pass']))  // check for blank password
         {
           // get the stored seed
-          $StoredUserRec = $this->GetUserRec($UserRec['user_pk']);
+          $StoredUserRec = $this->GetUserRecord($UserRec['user_pk']);
           $UserRec['_blank_pass'] = ($UserRec['user_pass'] == sha1($StoredUserRec['user_seed'] . "")) ? "on" : "";
         }
       }
@@ -346,7 +350,7 @@ class user_edit extends FO_Plugin {
   }
 
   /**
-   * \brief Allow user to change their account settings (users db table).  
+   * \brief Allow user to change their account settings (users db table).
    *        If the user is an Admin, they can change settings for any user.\n
    *        This is called in the following circumstances:\n
    *        1) User clicks on Admin > Edit User Account\n
@@ -360,53 +364,64 @@ class user_edit extends FO_Plugin {
     }
     /* Is the session owner an admin?  */
     $user_pk = $_SESSION['UserId'];
-    $SessionUserRec = $this->GetUserRec($user_pk);
+    $SessionUserRec = $this->GetUserRecord($user_pk);
     $SessionIsAdmin = $this->IsSessionAdmin($SessionUserRec);
 
     $V = "";
 
-    /* script to refresh this page with the selected user data (newuser=user_pk) */
-    $uri = Traceback_uri() . "?mod=$this->Name";
-    $V .= "<script language='javascript'>\n";
-    $V .= "function RefreshPage(val) {";
-    $V .=  "var uri = '$uri' + '&newuser=' + val ;";
-    $V .=  "window.location.assign(uri);";
-    $V .= "}";
-    $V .= "</script>\n";
+    if (!($SessionIsAdmin or
+          empty(GetParm('user_pk', PARM_TEXT)) or
+          $_SESSION['UserId'] == GetParm('user_pk', PARM_TEXT)))
+    {
+      $V .= _("Your request is not valid.");
+      return $V;
+    }
+
+    if ($SessionIsAdmin)
+    {
+      /* script to refresh this page with the selected user data (newuser=user_pk) */
+      $uri = Traceback_uri() . "?mod=$this->Name";
+      $V .= "<script language='javascript'>\n";
+      $V .= "function RefreshPage(val) {";
+      $V .=  "var uri = '$uri' + '&newuser=' + val ;";
+      $V .=  "window.location.assign(uri);";
+      $V .= "}";
+      $V .= "</script>\n";
+    }
 
 
     /* If this is a POST (the submit button was clicked), then process the request. */
     $BtnText = GetParm('UpdateBtn', PARM_TEXT);
-    if (!empty($BtnText)) 
+    if (!empty($BtnText))
     {
       /* Get the form data to in an associated array */
-      $UserRec = $this->CreateUserRec("");
+      $UserRec = $this->ComposeUserRecord("");
 
       $rv = $this->UpdateUser($UserRec, $SessionIsAdmin);
-      if (empty($rv)) 
+      if (empty($rv))
       {
         // Successful db update
         $V .= displayMessage("User $UserRec[user_name] updated.");
 
         /* Reread the user record as update verification */
-        $UserRec = $this->CreateUserRec($UserRec['user_pk']);
+        $UserRec = $this->ComposeUserRecord($UserRec['user_pk']);
       }
-      else 
+      else
       {
         // Unsuccessful so display errors
         $V .= displayMessage($rv);
       }
     }
-    else  
+    else
     {
       // was a new user record requested (admin only)?
       $NewUserpk = GetParm('newuser', PARM_INTEGER);
-      if (!empty($NewUserpk)) 
-        $UserRec = $this->CreateUserRec($NewUserpk);
+      if (!empty($NewUserpk) and $SessionIsAdmin)
+        $UserRec = $this->ComposeUserRecord($NewUserpk);
       else
-        $UserRec = $this->CreateUserRec($user_pk);  // initial call from menu
+        $UserRec = $this->ComposeUserRecord($user_pk);  // initial call from menu
     }
-    
+
     /* display the edit form with the requested user data */
     $V .= $this->DisplayForm($UserRec, $SessionIsAdmin);
 
