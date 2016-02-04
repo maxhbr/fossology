@@ -19,6 +19,7 @@
 
 namespace Fossology\Lib\Report;
 
+use Fossology\Lib\Agent\Agent;
 use Fossology\Lib\BusinessRules\LicenseMap;
 use Fossology\Lib\Dao\ClearingDao;
 use Fossology\Lib\Dao\LicenseDao;
@@ -45,7 +46,7 @@ class LicenseClearedGetter extends ClearedGetterCommon
     parent::__construct($groupBy = 'text');
   }
 
-  protected function getStatements($uploadId, $uploadTreeTableName, $groupId = null)
+  protected function getStatements($uploadId, $uploadTreeTableName, $groupId = null, Agent $caller = null)
   {
     $itemTreeBounds = $this->uploadDao->getParentItemBounds($uploadId,$uploadTreeTableName);
     $clearingDecisions = $this->clearingDao->getFileClearingsFolder($itemTreeBounds, $groupId);
@@ -54,7 +55,12 @@ class LicenseClearedGetter extends ClearedGetterCommon
     $mainLicIds = $this->clearingDao->getMainLicenseIds($uploadId, $groupId);
 
     $ungroupedStatements = array();
+    $count = 0;
     foreach ($clearingDecisions as $clearingDecision) {
+      if(($count++ % 1000) == 0 && $caller !== null)
+      {
+        $caller->heartbeat(0);
+      }
       if($clearingDecision->getType() == DecisionTypes::IRRELEVANT)
       {
         continue;

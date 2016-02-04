@@ -19,6 +19,7 @@
 
 namespace Fossology\Lib\Report;
 
+use Fossology\Lib\Agent\Agent;
 use Fossology\Lib\Dao\CopyrightDao;
 use Fossology\Lib\Data\DecisionTypes;
 use Fossology\Lib\Proxy\ScanJobProxy;
@@ -45,7 +46,7 @@ class XpClearedGetter extends ClearedGetterCommon
     parent::__construct();
   }
 
-  protected function getStatements($uploadId, $uploadTreeTableName, $groupId = null)
+  protected function getStatements($uploadId, $uploadTreeTableName, $groupId = null, Agent $caller = null)
   {
     $agentName = $this->tableName;
     $scanJobProxy = new ScanJobProxy($GLOBALS['container']->get('dao.agent'), $uploadId);

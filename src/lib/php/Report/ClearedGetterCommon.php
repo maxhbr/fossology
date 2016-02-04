@@ -19,6 +19,7 @@
 
 namespace Fossology\Lib\Report;
 
+use Fossology\Lib\Agent\Agent;
 use Fossology\Lib\Dao\TreeDao;
 use Fossology\Lib\Dao\UploadDao;
 
@@ -179,11 +180,29 @@ abstract class ClearedGetterCommon
    */
   abstract protected function getStatements($uploadId, $uploadTreeTableName, $groupId=null);
 
-  public function getCleared($uploadId, $groupId=null)
+  /**
+   * @param $uploadId
+   * @param null $groupId
+   * @param Agent $caller
+   * @return array
+   */
+  public function getCleared($uploadId, $groupId=null, Agent $caller=null)
   {
     $uploadTreeTableName = $this->uploadDao->getUploadtreeTableName($uploadId);
-    $ungrupedStatements = $this->getStatements($uploadId, $uploadTreeTableName, $groupId);
+    if($caller !== null)
+    {
+      $caller->heartbeat(0);
+    }
+    $ungrupedStatements = $this->getStatements($uploadId, $uploadTreeTableName, $groupId, $caller);
+    if($caller !== null)
+    {
+      $caller->heartbeat(0);
+    }
     $this->changeTreeIdsToPaths($ungrupedStatements, $uploadTreeTableName, $uploadId);
+    if($caller !== null)
+    {
+      $caller->heartbeat(0);
+    }
     $statements = $this->groupStatements($ungrupedStatements);
     return array("statements" => array_values($statements));
   }

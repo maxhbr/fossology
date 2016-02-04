@@ -18,6 +18,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 namespace Fossology\Lib\Report;
 
+use Fossology\Lib\Agent\Agent;
 use Fossology\Lib\Dao\UploadDao;
 use Fossology\Lib\Dao\TreeDao;
 use Mockery as M;
@@ -32,7 +33,7 @@ class TestClearedGetter extends ClearedGetterCommon
     parent::__construct($groupBy);
   }
 
-  protected function getStatements($uploadId, $uploadTreeTableName, $userId = null, $groupId=null)
+  protected function getStatements($uploadId, $uploadTreeTableName, $userId = null, $groupId=null, Agent $caller=null)
   {
     return array(
       array("content" => "1", "text" => "t1", "comments" => "c1", "uploadtree_pk" => 1),
