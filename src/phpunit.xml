@@ -23,6 +23,10 @@
       <directory suffix="Test.php">spdx2/agent_tests/Functional</directory>
     </testsuite>
 
+    <testsuite name="others">
+      <directory suffix="_DelagentTest.php">delagent/agent_tests/Functional</directory>
+      <!-- <directory file="cliParamsTest4WgetAgent.php">wget_agent/agent_tests/Functional</directory> -->
+    </testsuite>
   </testsuites>
 
   <filter>

@@ -26,26 +26,21 @@
  * \class ft_cliDelagentTest - functioin test delagent agent from cli
  */
 class ft_cliDelagentTest extends PHPUnit_Framework_TestCase {
-   
+
   public $EXE_PATH = "";
   public $PG_CONN;
   public $DB_COMMAND = "";
   public $DB_NAME = "";
- 
-  /* initialization */
-  protected function setUp() {
-    print "Starting test functional delagent agent \n";
-    global $EXE_PATH;
-    global $PG_CONN;
-    global $DB_COMMAND;
-    global $DB_NAME;    
-    
-    $db_conf = "";
 
-    $DB_COMMAND  = "../../../testing/db/createTestDB.php -e";
+  protected function setUpDB(&$db_conf)
+  {
+    global $DB_COMMAND;
+    global $DB_NAME;
+    $DB_COMMAND  = dirname(dirname(dirname(dirname(__FILE__))))."/testing/db/createTestDB.php -e";
     exec($DB_COMMAND, $dbout, $rc);
     if (0 != $rc)
     {
+      print_r($dbout);
       print "Can not create database for this testing sucessfully!\n";
       exit;
     }
@@ -54,31 +49,54 @@ class ft_cliDelagentTest extends PHPUnit_Framework_TestCase {
     $db_conf = $dbout[0];
 
     $DB_NAME = "fosstest" . $test_name;
+  }
 
-    $EXE_PATH = '../../agent/delagent';
-    $usage= ""; 
-    $usageL = "";    
+  protected function getTestDataPath()
+  {
+    $relativePart = '../testdata/testdb_all.tar';
+    return realpath(dirname(__FILE__)) . '/' . $relativePart;
+  }
 
-    if(file_exists($EXE_PATH))
-    {
-      $usage = 'Usage: ../../agent/delagent [options]';
-      $usageL = '  -f   :: List folder IDs.';
-    }
-    else
+  protected function restoreTestData()
+  {
+    exec("pg_restore -Ufossy -d $DB_NAME " . $this->getTestDataPath());
+  }
+
+  /* initialization */
+  protected function setUp()
+  {
+    global $EXE_PATH;
+    global $DB_NAME;
+    global $PG_CONN;
+
+    $EXE_PATH = dirname(dirname(dirname(__FILE__))) . '/agent/delagent';
+    if(!file_exists($EXE_PATH))
     {
       $this->assertFileExists($EXE_PATH,
       $message = 'FATAL: cannot find executable file, stop testing\n');
+      exit;
     }
-    // run it
-    $last = exec("$EXE_PATH -h 2>&1", $out, $rtn);
-    $this->assertEquals($usage, $out[0]); // check if executable file delagent is exited
-    $this->assertEquals($usageL, $out[6]); // check if the option -L removed
+
+    $db_conf = "";
+    $this->setUpDB($db_conf);
+    $EXE_PATH = $EXE_PATH." -c $db_conf";
+
     $PG_CONN = pg_connect("host=localhost port=5432 dbname=" . $DB_NAME . " user=fossy password=fossy")
                or die("Could not connect");
-    $EXE_PATH = $EXE_PATH." -c $db_conf";
   }
+
   /**
-   * \brief test delagent -u 
+   * \brief test delagent -h
+   */
+  function testDelagentHelp(){
+    global $EXE_PATH;
+    $usage = 'Usage: ';
+    exec("$EXE_PATH -h 2>&1", $out, $rtn);
+    $this->assertStringStartsWith($usage, $out[0]); // check if executable file delagent is exited
+  }
+
+  /**
+   * \brief test delagent -u
    */
   function testDelagentu(){
     global $EXE_PATH;
@@ -86,17 +104,17 @@ class ft_cliDelagentTest extends PHPUnit_Framework_TestCase {
     global $DB_NAME;
 
     $expected = "";
- 
-    exec("pg_restore -Ufossy -d $DB_NAME ../testdata/testdb_all.tar");
+
+    $this->restoreTestData();
 
     $sql = "SELECT upload_pk, upload_filename FROM upload ORDER BY upload_pk;";
     $result = pg_query($PG_CONN, $sql);
     if (pg_num_rows($result) > 0){
       $row = pg_fetch_assoc($result);
       $expected = $row["upload_pk"] . " :: ". $row["upload_filename"];
-    } 
+    }
     pg_free_result($result);
-    /** the file is one executable file */ 
+    /** the file is one executable file */
     $command = "$EXE_PATH -u -n fossy -p fossy";
     exec($command, $out, $rtn);
     //print_r($out);
@@ -113,7 +131,7 @@ class ft_cliDelagentTest extends PHPUnit_Framework_TestCase {
     global $DB_NAME;
     $expected = "";
 
-    exec("pg_restore -Ufossy -d $DB_NAME ../testdata/testdb_all.tar");
+    $this->restoreTestData();
 
     $sql = "SELECT folder_pk,parent,name,description,upload_pk FROM folderlist ORDER BY name,parent,folder_pk;";
     $result = pg_query($PG_CONN, $sql);
@@ -138,11 +156,11 @@ class ft_cliDelagentTest extends PHPUnit_Framework_TestCase {
     global $DB_NAME;
     $expected = "The upload '85' is deleted by the user 'fossy'.";
 
-    exec("pg_restore -Ufossy -d $DB_NAME ../testdata/testdb_all.tar");
+    $this->restoreTestData();
     $sql = "UPDATE upload SET user_fk = 2;";
     $result = pg_query($PG_CONN, $sql);
     pg_free_result($result);
-    
+
     $command = "$EXE_PATH -U 85 -n fossy -p fossy";
     exec($command, $out, $rtn);
     #print $expected . "\n";

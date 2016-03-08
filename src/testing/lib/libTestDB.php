@@ -83,6 +83,7 @@ function createTestDB($name)
   exec($cmd, $cmdOut, $cmdRtn);
   if($cmdRtn != 0)
   {
+    print_r($cmdOut);
     $err = "Error could not create Data Base $name\n";
     return($err);
   }

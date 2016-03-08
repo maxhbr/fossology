@@ -192,6 +192,15 @@ if(empty($sysconfig))
     exit(1);
   }
 }
+$sysconfig = realpath($sysconfig);
+// if (!is_dir($sysconfig))
+// {
+//   $potentialSysconfig = getcwd() . '/../../../' . $sysconfig;
+//   if(is_dir($potentialSysconfig))
+//   {
+//     $sysconfig = $potentialSysconfig;
+//   }
+// }
 
 putenv("SYSCONFDIR=$sysconfig");
 $_ENV['SYSCONFDIR'] = $sysconfig;
@@ -255,7 +264,7 @@ if(file_put_contents($confPath . "/Db.conf", $conf) === FALSE)
 
 // copy and modify fossology.conf
 $fossConf = $sysconfig . '/fossology.conf';
-$myConf  = $confPath . '/fossology.conf';
+$myConf = $confPath . '/fossology.conf';
 
 if(file_exists($fossConf))
 {

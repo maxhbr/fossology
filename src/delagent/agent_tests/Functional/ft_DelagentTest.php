@@ -16,7 +16,9 @@
  51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-require_once(dirname(dirname(dirname(dirname(__FILE__)))).'/cli/tests/test_common.php');
+use Fossology\Lib\Test\TestPgDb;
+use Fossology\Lib\Test\TestInstaller;
+// require_once(dirname(dirname(dirname(dirname(__FILE__)))).'/cli/tests/test_common.php');
 
 /**
  * \brief test delagent cli
@@ -24,24 +26,36 @@ require_once(dirname(dirname(dirname(dirname(__FILE__)))).'/cli/tests/test_commo
 
 class ft_DelagentTest extends PHPUnit_Framework_TestCase {
 
-  public $SYSCONF_DIR = "/usr/local/etc/fossology/";
+  // public $SYSCONF_DIR = "/usr/local/etc/fossology/";
   public $DB_NAME;
   public $PG_CONN;
   public $DB_COMMAND;
 
-  /** 
+  /** @var TestPgDb */
+  private $testDb;
+  /** @var TestInstaller */
+  private $testInstaller;
+  /** @var DbManager */
+  private $dbManager;
+  /** @var String */
+  private $sys_conf;
+
+  /**
    * \brief upload testdata
    *    prepare testdata for delagent, upload one tar file and schedule all agents
    */
-  function upload_testdata(){
-    global $SYSCONF_DIR;
-    $auth = "--user fossy --password fossy -c $SYSCONF_DIR";
+  function upload_testdata($sys_conf){
+    $auth = "--username fossy --password fossy -c " . $sys_conf;
     /**  upload a tar file to one specified path */
     $out = "";
     $pos = 0;
     $upload_path = "upload_path";
-    $command = "cp2foss $auth ../../../pkgagent/agent_tests/testdata/fossology-1.2.0-1.el5.i386.rpm -f $upload_path -d upload_des -q all -v";
+    $fileToUpload = dirname(dirname(dirname(dirname(__FILE__))))."/pkgagent/agent_tests/testdata/fossology-1.2.0-1.el5.i386.rpm";
+    $tmpFile = "/tmp/fossology-1.2.0-1.el5.i386.rpm";
+    copy($fileToUpload,$tmpFile);
+    $command = "cp2foss $auth $tmpFile -f $upload_path -d upload_des -q all -v";
     $last = exec("$command 2>&1", $out, $rtn);
+    print_r($out);
     sleep(10);
     // print_r($out);
     $repo_string = "Uploading to folder: '/$upload_path'";
@@ -86,21 +100,46 @@ class ft_DelagentTest extends PHPUnit_Framework_TestCase {
     $this->assertEquals(1, $agent_status);
   }
 
+  private function setUpTables()
+  {
+    $this->testDb->createPlainTables(array('upload','upload_reuse','uploadtree','folder','foldercontents','uploadtree_a','license_ref','license_ref_bulk','clearing_decision','clearing_decision_event','clearing_event','license_file','highlight','highlight_bulk','agent','pfile','ars_master','users','groups','group_user_member','license_map'),false);
+    $this->testDb->createSequences(array('agent_agent_pk_seq','pfile_pfile_pk_seq','upload_upload_pk_seq','nomos_ars_ars_pk_seq','license_file_fl_pk_seq','license_ref_rf_pk_seq','license_ref_bulk_lrb_pk_seq','clearing_decision_clearing_decision_pk_seq','clearing_event_clearing_event_pk_seq','FileLicense_pkey'),false);
+    $this->testDb->createViews(array('license_file_ref'),false);
+    $this->testDb->createConstraints(array('agent_pkey','pfile_pkey','upload_pkey_idx','clearing_event_pkey'),false);
+    $this->testDb->alterTables(array('agent','pfile','upload','ars_master','license_ref_bulk','clearing_event','clearing_decision','license_file','highlight'),false);
+    $this->testDb->createInheritedTables();
+    // $this->testDb->createInheritedArsTables(array('nomos','monk'));
+
+    $this->testDb->insertData(array('pfile','upload','uploadtree_a','users','group_user_member','agent','license_file','nomos_ars','monk_ars'), false);
+    $this->testDb->insertData_license_ref();
+
+    $this->testDb->resetSequenceAsMaxOf('agent_agent_pk_seq', 'agent', 'agent_pk');
+
+    // $this->dbManager->queryOnce("DELETE FROM license_file");
+  }
+
   /* initialization */
   protected function setUp() {
-    global $SYSCONF_DIR;
-    global $DB_COMMAND;
-    global $DB_NAME;
+    // global $DB_COMMAND;
+    // global $DB_NAME;
+    $this->agentDir = dirname(dirname(__DIR__));
 
-    $SYSCONF_DIR = "/usr/local/etc/fossology/";
-    $DB_NAME = "fossology";
-    $DB_COMMAND = "../../../testing/db/createTestDB.php";
-    print "Starting functional test for delagent. \n";
-    create_db();
-    add_user();
-    replace_repo();
-    scheduler_operation();
-    $this->upload_testdata();
+    $this->testDb = new TestPgDb("delagent".time());
+    $this->setUpTables();
+    $this->sys_conf = $this->testDb->getFossSysConf();
+    // $last = exec("mkdir -p " . $this->agentDir . '/../www', $out, $rtn);
+    // $last = exec("cp -r " . $this->agentDir . '/../www' . " " . $this->sys_conf . '/inst', $out, $rtn);
+    // $last = exec("cp -r " . $this->agentDir . '/../lib' . " " . $this->sys_conf . '/inst', $out, $rtn);
+    // $last = exec("cp -r " . $this->agentDir . '/../vendor' . " " . $this->sys_conf . '/inst', $out, $rtn);
+    $this->testInstaller = new TestInstaller($this->sys_conf);
+    $this->testInstaller->init();
+    $this->testInstaller->cpRepo();
+    $this->testInstaller->install($this->agentDir);
+    $this->dbManager = $this->testDb->getDbManager();
+
+    print_r($this->sys_conf);
+
+    $this->upload_testdata($this->sys_conf);
   }
 
   /**
@@ -154,8 +193,10 @@ class ft_DelagentTest extends PHPUnit_Framework_TestCase {
    * \brief clean the env
    */
   protected function tearDown() {
-    rollback_repo(); // rollback the repo dir in ununpack.conf and wget_agent.conf to the default
-    drop_db();
+    $this->testInstaller->uninstall($this->agentDir);
+    $this->testInstaller->rmRepo();
+    $this->testInstaller->clear();
+    $this->testDb->fullDestruct();
     print "End up functional test for cp2foss \n";
   }
 
