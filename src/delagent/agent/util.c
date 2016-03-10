@@ -143,16 +143,16 @@ int authentication(char *user, char *password, int *user_id, int *user_perm)
  * \param long upload_id - upload id
  * \param char *user_name - user name
  *
- * \return 1: yes, can be deleted;
- *         0: can not be deleted;
- *        -1: failure;
- *        -2: does not exist
+ * \return perms: on success
+ *            -1: failure;
+ *            -2: does not exist
  */
-int check_permission_upload(int wantedPermissions, long upload_id, int user_id)
+int get_permission_upload(long upload_id, int user_id, int user_perm)
 {
   char SQL[MAXSQL] = {0};
   PGresult *result = NULL;
   int count = 0;
+  int db_perm = 0;
 
   snprintf(SQL,MAXSQL,"SELECT count(*) FROM upload join users on (users.user_pk = upload.user_fk or users.user_perm = 10) where upload_pk = %ld and users.user_pk = %d;", upload_id, user_id);
   result = PQexec(db_conn, SQL);
@@ -165,25 +165,47 @@ int check_permission_upload(int wantedPermissions, long upload_id, int user_id)
   {
     return -2; // this upload does not exist
   }
+  db_perm = GetUploadPerm(db_conn, upload_id, user_id);
+  return ( user_perm < db_perm ) ? user_perm : db_perm;
+}
 
-  /* Check Permissions */
-  if (GetUploadPerm(db_conn, upload_id, user_id) < wantedPermissions)
+/**
+ * \brief check if the upload can be deleted, that is the user have
+ * the permission to delete this upload
+ *
+ * \param long upload_id - upload id
+ * \param char *user_name - user name
+ *
+ * \return 1: yes, you have the needed permissions;
+ *         0: no;
+ *        -1: failure;
+ *        -2: does not exist
+ */
+int check_permission_upload(int wanted_permissions, long upload_id, int user_id, int user_perm)
+{
+  int perms = get_permission_upload(upload_id, user_id, user_perm);
+  if (perms > 0)
   {
-    printf("You have no write permissions on upload %ld", upload_id);
-    return 0; // can not be deleted
+    if (perms < wanted_permissions)
+    {
+      return 0;
+    }
+    else
+    {
+      return 1;
+    }
   }
-
-  return 1; // can be deleted
+  return perms;
 }
 
-int check_read_permission_upload(long upload_id, int user_id)
+int check_read_permission_upload(long upload_id, int user_id, int user_perm)
 {
-  return check_permission_upload(PERM_READ, upload_id, user_id);
+  return check_permission_upload(PERM_READ, upload_id, user_id, user_perm);
 }
 
-int check_write_permission_upload(long upload_id, int user_id)
+int check_write_permission_upload(long upload_id, int user_id, int user_perm)
 {
-  return check_permission_upload(PERM_WRITE, upload_id, user_id);
+  return check_permission_upload(PERM_WRITE, upload_id, user_id, user_perm);
 }
 
 /**
@@ -197,11 +219,16 @@ int check_write_permission_upload(long upload_id, int user_id)
  *         0: can not be deleted;
  *        -1: failure;
  */
-int check_permission_folder(long folder_id, int user_id, int user_perm)
+int check_write_permission_folder(long folder_id, int user_id, int user_perm)
 {
   char SQL[MAXSQL];
   PGresult *result;
   int count = 0;
+
+  if (user_perm < PERM_WRITE)
+  {
+    return 0; // can not be deleted
+  }
 
   snprintf(SQL,MAXSQL,"SELECT count(*) FROM folder join users on (users.user_pk = folder.user_fk or users.user_perm = 10) where folder_pk = %ld and users.user_pk = %d;",folder_id,user_id);
   result = PQexec(db_conn, SQL);
@@ -210,7 +237,8 @@ int check_permission_folder(long folder_id, int user_id, int user_perm)
     return -1;
   }
   count = atol(PQgetvalue(result,0,0));
-  if(count == 0){
+  if(count == 0)
+  {
     return 0; // can not be deleted
   }
   return 1; // can be deleted
@@ -226,7 +254,7 @@ int check_permission_folder(long folder_id, int user_id, int user_perm)
  * \return 1: yes, can be deleted;
  *         0: can not be deleted;
  */
-int check_permission_license(long license_id, int user_perm)
+int check_write_permission_license(long license_id, int user_perm)
 {
   if (user_perm != PERM_ADMIN)
   {
@@ -257,7 +285,7 @@ int DeleteLicense (long UploadId, int user_perm)
   PGresult *result;
   long items=0;
 
-  int permission_license = check_permission_license(UploadId, user_perm);
+  int permission_license = check_write_permission_license(UploadId, user_perm);
   if (1 != permission_license)
   {
     return permission_license;
@@ -324,7 +352,7 @@ int DeleteLicense (long UploadId, int user_perm)
  *        -1: failure;
  *        -2: does not exist
  */
-int DeleteUpload (long UploadId, int user_id)
+int DeleteUpload (long UploadId, int user_id, int user_perm)
 {
   char *S;
   int Row,MaxRow;
@@ -332,7 +360,7 @@ int DeleteUpload (long UploadId, int user_id)
   PGresult *result, *pfile_result;
   char SQL[MAXSQL], desc[myBUFSIZ];
 
-  int permission_upload = check_write_permission_upload(UploadId, user_id);
+  int permission_upload = check_write_permission_upload(UploadId, user_id, user_perm);
   if(1 != permission_upload)
   {
     return permission_upload;
@@ -569,7 +597,7 @@ int ListFoldersRecurse (long Parent, int Depth, long Row, int DelFlag, int user_
   char SQL[MAXSQL];
   int rc;
 
-  if(DelFlag && 0 >= check_permission_folder(Parent, user_id, user_perm)){
+  if(DelFlag && 0 >= check_write_permission_folder(Parent, user_id, user_perm)){
     return 0;
   }
 
@@ -629,7 +657,7 @@ int ListFoldersRecurse (long Parent, int Depth, long Row, int DelFlag, int user_
       }
       if (DelFlag)
       {
-        rc = DeleteUpload(atol(PQgetvalue(result,r,4)),user_id);
+        rc = DeleteUpload(atol(PQgetvalue(result,r,4)),user_id, user_perm);
         if (rc < 1)
         {
           printf("Deleting the folder failed since it contains uploads you can't delete.");
@@ -638,7 +666,7 @@ int ListFoldersRecurse (long Parent, int Depth, long Row, int DelFlag, int user_
       }
       else
       {
-        if (check_read_permission_upload(atol(PQgetvalue(result,r,4)), user_id) == 1)
+        if (check_read_permission_upload(atol(PQgetvalue(result,r,4)),user_id,user_perm) == 1)
         {
           for(i=0; i<Depth; i++)
           {
@@ -961,7 +989,7 @@ int ReadAndProcessParameter (char *Parm, int user_id, int user_perm)
   /* Handle the request */
   if ((Type==1) && (Target==1))
   {
-    rc = DeleteUpload(Id, user_id);
+    rc = DeleteUpload(Id, user_id, user_perm);
   }
   else if ((Type==1) && (Target==2))
   {
