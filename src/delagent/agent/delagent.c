@@ -75,7 +75,7 @@ void writeMessageAfterDelete(char *kind, long id, char *user_name, int returnedC
   else
   {
     fprintf(stdout, "Deletion failed: user '%s' does not have the permsssion to delete the %s '%ld', or the %s '%ld' does not exist.\n", user_name, kind, id, kind, id);
-    exit(returnedCode);
+    exit(-1);
   }
 }
 
