@@ -997,7 +997,7 @@ void DoSchedulerTasks()
     result = PQexec(db_conn, SQL);
     if (fo_checkPQresult(db_conn, result, SQL, __FILE__, __LINE__) || !PQntuples(result))
     {
-      exit(-1);
+      exit(0);
     }
     user_perm = atoi(PQgetvalue(result, 0, 0));
     PQclear(result);
