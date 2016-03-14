@@ -1040,9 +1040,12 @@ void DoSchedulerTasks()
     user_perm = atoi(PQgetvalue(result, 0, 0));
     PQclear(result);
 
-    if (ReadAndProcessParameter(Parm, user_id, user_perm) < 0)
+    int returnCode = ReadAndProcessParameter(Parm, user_id, user_perm);
+    if (returnCode <= 0)
     {
-      exit(-1);
+      /* Loglevel is to high, but scheduler expects FATAL log message before exit */
+      LOG_FATAL("Due to permission problems, the delagent was not able to delete the requested objects or the object did not exist.");
+      exit(returnCode);
     }
   }
 }
