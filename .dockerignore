@@ -1,0 +1,16 @@
+packaging
+.git
+.gitignore
+.travis.yml
+CHANGES.md
+CONTRIBUTING.md
+COPYING
+COPYING.LGPL
+Dockerfile
+HACKING
+LICENSE
+README.md
+Vagrantfile*
+examples/
+install_locations.xls
+packaging/

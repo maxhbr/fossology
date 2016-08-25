@@ -9,23 +9,24 @@
 #
 # Description: startup helper script for the FOSSology Docker container
 
-db_host="localhost"
-db_name="fossology"
-db_user="fossy"
-db_password="fossy"
+if [ ! "$FOSSOLOGY_DB_HOST" ]; then
+    echo "no host specified in the variable \$FOSSOLOGY_DB_HOST"
+    exit 1
+fi
+db_host="$FOSSOLOGY_DB_HOST"
+db_name="${FOSSOLOGY_DB_NAME:-fossology}"
+db_user="${FOSSOLOGY_DB_USER:-fossy}"
+db_password="${FOSSOLOGY_DB_PASSWORD:-fossy}"
 
-if [ "$FOSSOLOGY_DB_HOST" ]; then
-	db_host="$FOSSOLOGY_DB_HOST"
-fi
-if [ "$FOSSOLOGY_DB_NAME" ]; then
-	db_name="$FOSSOLOGY_DB_NAME"
-fi
-if [ "$FOSSOLOGY_DB_USER" ]; then
-	db_user="$FOSSOLOGY_DB_USER"
-fi
-if [ "$FOSSOLOGY_DB_PASSWORD" ]; then
-	db_password="$FOSSOLOGY_DB_PASSWORD"
-fi
+# wait for external DB
+testForPostgres(){
+    PGPASSWORD=$db_password psql -h "$db_host" "$db_name" "$db_user" -c '\l' >/dev/null
+    return $?
+}
+until testForPostgres; do
+    >&2 echo "Postgres is unavailable - sleeping"
+    sleep 1
+done
 
 # Write configuration
 cat <<EOM > /usr/local/etc/fossology/Db.conf
@@ -35,31 +36,32 @@ user=$db_user;
 password=$db_password;
 EOM
 
-# Startup DB if needed or wait for external DB
-if [ "$db_host" = 'localhost' ]; then
-  echo '*****************************************************'
-  echo 'WARNING: No database host was set and therefore the'
-  echo 'internal database without persistency will be used.'
-  echo 'THIS IS NOT RECOMENDED FOR PRODUCTIVE USE!'
-  echo '*****************************************************'
-  /etc/init.d/postgresql start
-else
-  testForPostgres(){
-    PGPASSWORD=$db_password psql -h "$db_host" "$db_name" "$db_user" -c '\l' >/dev/null
-    return $?
-  }
-  until testForPostgres; do
-    >&2 echo "Postgres is unavailable - sleeping"
-    sleep 1
-  done
+################################################################################
+if [ "$SW360_PUBLIC_KEY" ]; then
+    echo "$SW360_PUBLIC_KEY" > /home/sw360/.ssh/authorized_keys
+    chown sw360:fossy /home/sw360/.ssh/authorized_keys
+    /etc/init.d/sshd start
 fi
 
-# Setup environment
-/usr/local/lib/fossology/fo-postinstall
+################################################################################
+# if [[ $# = 1 && "$1" == "scheduler" ]]; then
+    # Setup environment
+    /usr/local/lib/fossology/fo-postinstall \
+        --agent \
+        --database \
+        --scheduler-only
+    echo "Starting FOSSology job scheduler"
+    # exec /usr/local/share/fossology/scheduler/agent/fo_scheduler --reset --verbose=1
+    /etc/init.d/fossology start
+# fi
 
-# Start Fossology
-echo
-echo 'Fossology initialisation complete; Starting up...'
-echo
-/etc/init.d/fossology start
-/usr/sbin/apache2ctl -D FOREGROUND
+################################################################################
+if [[ $# = 1 && "$1" == "web" ]]; then
+    # Setup environment
+    /usr/local/lib/fossology/fo-postinstall \
+        --web-only
+    exec /usr/sbin/apache2ctl -D FOREGROUND
+fi
+
+################################################################################
+exec "$@"
