@@ -22,7 +22,12 @@ services:
   #   links:
   #     - db
   web:
-    build: ..
+    build:
+      context: ..
+      args:
+        - http_proxy
+        - https_proxy
+        - no_proxy
     environment:
       - FOSSOLOGY_DB_HOST=db
       - FOSSOLOGY_DB_NAME=fossology
