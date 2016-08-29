@@ -40,7 +40,7 @@ EOM
 if [ "$SW360_PUBLIC_KEY" ]; then
     echo "$SW360_PUBLIC_KEY" > /home/sw360/.ssh/authorized_keys
     chown sw360:fossy /home/sw360/.ssh/authorized_keys
-    /etc/init.d/sshd start
+    /etc/init.d/ssh start
 fi
 
 ################################################################################
