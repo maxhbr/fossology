@@ -9,32 +9,42 @@
 # Description: Docker container image recipe
 
 FROM debian:stable
-
 MAINTAINER Fossology <fossology@fossology.org>
-
 WORKDIR /fossology
+
+ENV _update="apt-get update"
+ENV _install="apt-get install -y --no-install-recommends"
+ENV _cleanup="eval apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*"
+
+RUN set -x \
+ && $_update && $_install \
+       lsb-release curl php5 libpq-dev libdbd-sqlite3-perl libspreadsheet-writeexcel-perl postgresql-client \
+ && $_cleanup
+RUN curl --insecure -sS https://getcomposer.org/installer | php \
+ && mv composer.phar /usr/local/bin/composer
+
+ADD utils/fo-installdeps utils/fo-installdeps
+ADD install/scripts/php-conf-fix.sh install/scripts/php-conf-fix.sh
+RUN set -x \
+ && $_update \
+ && /fossology/install/scripts/php-conf-fix.sh --overwrite \
+ && /fossology/utils/fo-installdeps -e -y \
+ && $_cleanup
+
 ADD . .
+RUN set -x \
+ && cp /fossology/install/src-install-apache-example.conf \
+        /etc/apache2/conf-available/fossology.conf \
+ && ln -s /etc/apache2/conf-available/fossology.conf \
+        /etc/apache2/conf-enabled/fossology.conf \
+ && make install \
+ && make clean \
+ && /usr/local/lib/fossology/fo-postinstall --common
 
-RUN apt-get update && \
-    apt-get install -y lsb-release sudo postgresql php5-curl libpq-dev libdbd-sqlite3-perl libspreadsheet-writeexcel-perl && \
-    /fossology/utils/fo-installdeps -e -y && \
-    rm -rf /var/lib/apt/lists/*
-
-RUN curl -sS https://getcomposer.org/installer | php && \
-    mv composer.phar /usr/local/bin/composer
-
-RUN /fossology/install/scripts/install-spdx-tools.sh
-
-RUN /fossology/install/scripts/install-ninka.sh
-
-RUN make install
-
-RUN cp /fossology/install/src-install-apache-example.conf /etc/apache2/conf-available/fossology.conf && \
-    ln -s /etc/apache2/conf-available/fossology.conf /etc/apache2/conf-enabled/fossology.conf
-
-RUN /fossology/install/scripts/php-conf-fix.sh --overwrite
+VOLUME /srv/fossology/repository/
+RUN chmod 777 /srv/fossology/repository/ # TODO
 
 EXPOSE 80
-
 RUN chmod +x /fossology/docker-entrypoint.sh
 ENTRYPOINT ["/fossology/docker-entrypoint.sh"]
+CMD ["bash"]

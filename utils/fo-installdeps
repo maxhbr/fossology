@@ -1,4 +1,4 @@
-
+#!/usr/bin/env bash
 # FOSSology fo-installdeps script
 # Copyright (C) 2008-2014 Hewlett-Packard Development Company, L.P.
 # This program is free software; you can redistribute it and/or
@@ -21,6 +21,8 @@
 # the packaging metadata for the system in question as that is the
 # canonical location for such info, then fix it there first and also
 # update this file and the INSTALL document.
+
+set -e
 
 ## Options parsing and setup
 # parse options
@@ -104,20 +106,18 @@ if [ $BUILDTIME ]; then
          apt-get $YesOpt install \
             libmxml-dev curl libxml2-dev libcunit1-dev \
             build-essential libtext-template-perl subversion rpm librpm-dev libmagic-dev libglib2.0 libboost-regex-dev libboost-program-options-dev
-         POSTGRE=`dpkg --get-selections|grep postgresql-server-dev`
-         if [ -z "$POSTGRE" ]; then  ## if postgresql-server-dev is installed
-           case "$CODENAME" in
-              lenny|hardy) apt-get $YesOpt install $YesOpt postgresql-server-dev-8.3;;
-              squeeze) apt-get $YesOpt install $YesOpt postgresql-server-dev-8.4;;
-              wheezy) apt-get $YesOpt install $YesOpt postgresql-server-dev-9.1;;
-              sid) apt-get  $YesOpt install $YesOpt postgresql-server-dev-8.4;;
-              lucid|natty) apt-get $YesOpt install postgresql-server-dev-8.4;;
-              isadora) apt-get $YesOpt install postgresql-server-dev-8.4;;
-              precise|oneiric|quantal|raring|saucy) apt-get $YesOpt install postgresql-server-dev-9.1;;
-              trusty|jessie) apt-get $YesOpt install postgresql-server-dev-9.3;;
-              *) echo "ERROR: Unknown or Unsupported $DISTRO release, please report to the mailing list"; exit 1;;
-           esac
-         fi
+         case "$CODENAME" in
+             lenny|hardy) apt-get $YesOpt install $YesOpt postgresql-server-dev-8.3;;
+             squeeze) apt-get $YesOpt install $YesOpt postgresql-server-dev-8.4;;
+             wheezy) apt-get $YesOpt install $YesOpt postgresql-server-dev-9.1;;
+             sid) apt-get  $YesOpt install $YesOpt postgresql-server-dev-8.4;;
+             lucid|natty) apt-get $YesOpt install postgresql-server-dev-8.4;;
+             isadora) apt-get $YesOpt install postgresql-server-dev-8.4;;
+             precise|oneiric|quantal|raring|saucy) apt-get $YesOpt install postgresql-server-dev-9.1;;
+             trusty) apt-get $YesOpt install postgresql-server-dev-9.3;;
+             jessie) apt-get $YesOpt install postgresql-server-dev-9.4;;
+             *) echo "ERROR: Unknown or Unsupported $DISTRO release, please report to the mailing list"; exit 1;;
+         esac
          ;;
       Fedora)
          # F8=Werwolf F9=Sulphur F10=Cambridge F11=Leonidas F12=Constantine dev=Rawhide
@@ -172,26 +172,25 @@ if [ $RUNTIME ]; then
             unrar-free unzip p7zip-full p7zip wget \
             subversion git \
             dpkg-dev
-         POSTGRE=`dpkg --get-selections|grep postgresql-8.4`
-         if [ -z "$POSTGRE" ]; then  ## if postgresql-server-dev is installed
-           case "$CODENAME" in
-              squeeze)
+         case "$CODENAME" in
+             squeeze)
                  apt-get $YesOpt install postgresql-8.4;;
-              wheezy)
+             wheezy)
                  apt-get $YesOpt install postgresql-9.1;;
-              sid)
+             sid)
                  apt-get $YesOpt install postgresql-8.4;;
-              lucid|natty)
+             lucid|natty)
                  apt-get $YesOpt install postgresql-8.4;;
-              isadora)
+             isadora)
                  apt-get $YesOpt install postgresql-8.4;;
-              precise|oneiric|quantal|raring|saucy)
+             precise|oneiric|quantal|raring|saucy)
                  apt-get $YesOpt install postgresql-9.1;;
-              trusty|jessie)
+             trusty)
                  apt-get $YesOpt install postgresql-9.3;;
-              *) echo "ERROR: Unknown or Unsupported $DISTRO release, please report to the mailing list"; exit 1;;
-           esac
-         fi
+             jessie)
+                 apt-get $YesOpt install postgresql-9.4;;
+             *) echo "ERROR: Unknown or Unsupported $DISTRO release, please report to the mailing list"; exit 1;;
+         esac
          ;;
       Mandriva)
          [ $AGENT ] || urpmi postgresql-server httpd
@@ -230,7 +229,7 @@ if [ $RUNTIME ]; then
                yum $YesOpt install sleuthkit
                echo "NOTE: unrar is not available in Fedora release $CODENAME,"
                echo "   please install from upstream sources."
-	       ;;
+         ;;
             *) echo "ERROR: Unknown Fedora release, please report a bug. Attempting to install anyway";
                yum install sleuthkit
                echo "NOTE: unrar is not available in Fedora release $CODENAME,"
@@ -242,19 +241,19 @@ if [ $RUNTIME ]; then
          # 4=Nahant* 5=Tikanga*
          if [ $YesOpt ]; then
            YesOpt='-y'
-         fi                           
+         fi
          yum $YesOpt install postgresql-server httpd
          yum $YesOpt install \
             postgresql \
             php php-pear php-pgsql php-process\
             smtpdaemon \
             file libxml2 \
-            binutils 
+            binutils
          echo "NOTE: cabextract, sleuthkit, upx, and unrar are not"
          echo "    available in RHEL please install from upstream sources.";;
       *) echo "ERROR: distro not recognised, please fix and send a patch"; exit 1;;
    esac
-   
+
    which composer
     if [ $? -eq 0  ]; then
         if [ $OFFLINE -eq 0 ]; then
@@ -299,8 +298,8 @@ fi
 if [ ! -z "$YesOpt" ]; then
   options="$options -y"
 fi
-BASEDIR=$(dirname $0) 
+BASEDIR=$(dirname $0)
 mods_dir=$BASEDIR"/../src/" ## get the directory where fo-installdeps resides
-install_mod_deps $mods_dir 
- 
+install_mod_deps $mods_dir
+
 ########################################################################
