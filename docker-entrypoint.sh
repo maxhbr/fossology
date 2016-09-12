@@ -75,9 +75,15 @@ if [[ $# = 1 && "$1" == "web" ]]; then
         --web-only
     sed -i 's/address = .*/address = '"${FOSSOLOGY_SCHEDULER_HOST:-localhost}"'/' \
         /usr/local/etc/fossology/fossology.conf
+    echo "Listen 8080" > /etc/apache2/ports.conf
+    chmod -R o+r /etc/apache2
+    chown -R fossy /var/run/apache2/
+    chown -R fossy /var/log/apache2/
+    chown -R fossy /var/lock/apache2/
+    mkdir -p /var/log/fossology/
+    chown -R fossy /var/log/fossology/
     echo "Starnting apache..."
-    exec /usr/sbin/apache2ctl \
-         -D FOREGROUND
+    exec su fossy -c "/usr/sbin/apache2ctl -D FOREGROUND"
 fi
 
 ################################################################################

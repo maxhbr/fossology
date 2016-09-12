@@ -44,7 +44,7 @@ RUN set -x \
 VOLUME /srv/fossology/repository/
 RUN chmod 777 /srv/fossology/repository/ # TODO
 
-EXPOSE 80
+EXPOSE 8080
 RUN chmod +x /fossology/docker-entrypoint.sh
 ENTRYPOINT ["/fossology/docker-entrypoint.sh"]
 CMD ["bash"]
