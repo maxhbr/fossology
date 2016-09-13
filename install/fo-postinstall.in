@@ -70,12 +70,14 @@ if [ $EVERYTHING ]; then
    LICENSEREF=1
 fi
 
-# This must run as root.
-if [ `id -u` != "0" ] ; then
-   echo "ERROR: fo-postinstall must run as root."
-   echo "Aborting."
-   exit 1
-fi
+checkRoot() \{
+   # This must run as root.
+   if [ `id -u` != "0" ] ; then
+      echo "ERROR: fo-postinstall must run as root."
+      echo "Aborting."
+      exit 1
+   fi
+\}
 
 
 readConfigVal() \{
@@ -106,6 +108,7 @@ else
 fi
 
 if [ $COMMON ]; then
+   checkRoot
    echo "*** Running postinstall for common actions***"
 
    ## check path to repo
@@ -246,6 +249,7 @@ fi # end of license reference
 ########################################################################
 
 if [ $AGENT ]; then
+   checkRoot
    # change all files ownership to {$PROJECTUSER}:$PROJECTGROUP
    chown -R {$PROJECTUSER}:$PROJECTGROUP {$MODDIR}
    #chmod u+s {$MODDIR}/scheduler/agent/fo_scheduler
@@ -274,6 +278,7 @@ fi # end of AGENT
 ########################################################################
 
 if [ $SCHEDULERONLY ]; then
+   checkRoot
    echo "*** Setting up scheduler ***"
 
    # Create the scheduler log directory.
@@ -291,6 +296,7 @@ fi # end of SCHEDULERONLY
 
 ########################################################################
 if [ $WEBONLY ]; then
+   checkRoot
    if [ $LICENSEREF == 0 ] ; then
      echo "*** Initializing database tables ***"
      {$LIBEXECDIR}/fossinit.php -c {$SYSCONFDIR}

@@ -35,11 +35,23 @@ ADD . .
 RUN set -x \
  && cp /fossology/install/src-install-apache-example.conf \
         /etc/apache2/conf-available/fossology.conf \
+ && echo Listen 8080 >/etc/apache2/ports.conf \
  && ln -s /etc/apache2/conf-available/fossology.conf \
         /etc/apache2/conf-enabled/fossology.conf \
  && make install \
- && make clean \
- && /usr/local/lib/fossology/fo-postinstall --common
+ && make clean
+
+RUN set -x \
+ && /usr/local/lib/fossology/fo-postinstall --common \
+ && chmod -R o+r /etc/apache2 \
+ && mkdir -p /var/log/apache2/ \
+ && chown -R fossy:fossy /var/log/apache2/ \
+ && mkdir -p /var/log/fossology \
+ && chown -R fossy:fossy /var/log/fossology \
+ && chown -R fossy:fossy /var/run/apache2/ \
+ && chown -R fossy:fossy /var/lock/apache2/ \
+ && chgrp fossy /usr/local/etc/fossology/Db.conf \
+ && chown fossy:fossy /usr/local/etc/fossology/Db.conf
 
 VOLUME /srv/fossology/repository/
 RUN chmod 777 /srv/fossology/repository/ # TODO
