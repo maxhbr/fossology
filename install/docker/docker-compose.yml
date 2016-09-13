@@ -11,10 +11,23 @@
 
 version: '2'
 services:
+  fossology-base:
+    build:
+      context: ../..
+      args:
+        - http_proxy
+        - https_proxy
+        - no_proxy
+    image: fossology-base
+    command: exit
   fossology-scheduler:
-    extends:
-      file: docker-compose.common.yml
-      service: fossology-base
+    build:
+      context: fossology-scheduler
+      args:
+        - http_proxy
+        - https_proxy
+        - no_proxy
+    image: fossology-scheduler
     restart: unless-stopped
     environment:
       - FOSSOLOGY_DB_HOST=fossology-db
@@ -23,13 +36,18 @@ services:
       - FOSSOLOGY_DB_PASSWORD=fossy
     command: scheduler
     links:
+      - fossology-base # build base image
       - fossology-db
     # volumes:
     #   - ./_repository:/srv/fossology/repository/
   fossology-web:
-    extends:
-      file: docker-compose.common.yml
-      service: fossology-base
+    build:
+      context: fossology-web
+      args:
+        - http_proxy
+        - https_proxy
+        - no_proxy
+    image: fossology-web
     restart: unless-stopped
     environment:
       - FOSSOLOGY_DB_HOST=fossology-db
@@ -41,6 +59,7 @@ services:
     ports:
       - 8081:8080
     links:
+      - fossology-base # build base image
       - fossology-db
       - fossology-scheduler
     volumes_from:

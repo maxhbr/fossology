@@ -43,20 +43,15 @@ RUN set -x \
 
 RUN set -x \
  && /usr/local/lib/fossology/fo-postinstall --common \
- && chmod -R o+r /etc/apache2 \
- && mkdir -p /var/log/apache2/ \
- && chown -R fossy:fossy /var/log/apache2/ \
  && mkdir -p /var/log/fossology \
  && chown -R fossy:fossy /var/log/fossology \
- && chown -R fossy:fossy /var/run/apache2/ \
- && chown -R fossy:fossy /var/lock/apache2/ \
- && chgrp fossy /usr/local/etc/fossology/Db.conf \
+ && chgrp -R fossy /usr/local/etc/fossology/ \
+ && chmod -R g+wr /usr/local/etc/fossology/ \
  && chown fossy:fossy /usr/local/etc/fossology/Db.conf
 
 VOLUME /srv/fossology/repository/
 RUN chmod 777 /srv/fossology/repository/ # TODO
 
-EXPOSE 8080
 RUN chmod +x /fossology/docker-entrypoint.sh
 ENTRYPOINT ["/fossology/docker-entrypoint.sh"]
 CMD ["bash"]

@@ -12,10 +12,10 @@
 #
 # used environmental variables:
 #    FOSSOLOGY_DB_HOST
-#    FOSSOLOGY_DB_NAME
-#    FOSSOLOGY_DB_USER
-#    FOSSOLOGY_DB_PASSWORD
-#    FOSSOLOGY_SCHEDULER_HOST
+#    FOSSOLOGY_DB_NAME (defaults to fossology)
+#    FOSSOLOGY_DB_USER (defaults to fossy)
+#    FOSSOLOGY_DB_PASSWORD (defaults to fossy)
+#    FOSSOLOGY_SCHEDULER_HOST (defaults to localhost)
 
 set -ex
 
@@ -48,34 +48,8 @@ user=$db_user;
 password=$db_password;
 EOM
 
-################################################################################
-# if [ "$SW360_PUBLIC_KEY" ]; then
-#     echo "$SW360_PUBLIC_KEY" > /home/sw360/.ssh/authorized_keys
-#     chown sw360:fossy /home/sw360/.ssh/authorized_keys
-#     /etc/init.d/ssh start
-# fi
-
-################################################################################
-if [[ $# = 1 && "$1" == "scheduler" ]]; then
-    # Setup environment
-    /usr/local/lib/fossology/fo-postinstall \
-        --agent \
-        --database \
-        --scheduler-only
-    echo "Starting FOSSology job scheduler..."
-    exec su fossy -c "/usr/local/share/fossology/scheduler/agent/fo_scheduler --reset --verbose=3"
-fi
-
-################################################################################
-if [[ $# = 1 && "$1" == "web" ]]; then
-    # Setup environment
-    /usr/local/lib/fossology/fo-postinstall \
-        --web-only
-    sed -i 's/address = .*/address = '"${FOSSOLOGY_SCHEDULER_HOST:-localhost}"'/' \
-        /usr/local/etc/fossology/fossology.conf
-    echo "Starnting apache..."
-    exec su fossy -c "/usr/sbin/apache2ctl -D FOREGROUND"
-fi
+sed -i 's/address = .*/address = '"${FOSSOLOGY_SCHEDULER_HOST:-localhost}"'/' \
+    /usr/local/etc/fossology/fossology.conf
 
 ################################################################################
 exec "$@"
