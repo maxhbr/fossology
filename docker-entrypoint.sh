@@ -29,17 +29,6 @@ db_user="${FOSSOLOGY_DB_USER:-fossy}"
 db_password="${FOSSOLOGY_DB_PASSWORD:-fossy}"
 
 ################################################################################
-# wait for external DB
-testForPostgres(){
-    PGPASSWORD=$db_password psql -h "$db_host" "$db_name" "$db_user" -c '\l' >/dev/null
-    return $?
-}
-until testForPostgres; do
-    >&2 echo "Postgres is unavailable - sleeping"
-    sleep 1
-done
-
-################################################################################
 # Write configuration
 cat <<EOM > /usr/local/etc/fossology/Db.conf
 dbname=$db_name;
@@ -50,6 +39,17 @@ EOM
 
 sed -i 's/address = .*/address = '"${FOSSOLOGY_SCHEDULER_HOST:-localhost}"'/' \
     /usr/local/etc/fossology/fossology.conf
+
+################################################################################
+# wait for external DB
+testForPostgres(){
+    PGPASSWORD=$db_password psql -h "$db_host" "$db_name" "$db_user" -c '\l' >/dev/null
+    return $?
+}
+until testForPostgres; do
+    >&2 echo "Postgres is unavailable - sleeping"
+    sleep 1
+done
 
 ################################################################################
 exec "$@"

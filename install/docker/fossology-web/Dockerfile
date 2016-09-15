@@ -12,7 +12,8 @@ FROM fossology-base
 MAINTAINER Fossology <fossology@fossology.org>
 
 RUN /usr/local/lib/fossology/fo-postinstall \
-        --web-only
+        --web-only \
+ && systemctl disable apache2
 
 RUN set -x \
  && chmod -R o+r /etc/apache2 \

@@ -25,4 +25,7 @@ echo "call parent entrypoint"
 /usr/local/lib/fossology/fo-postinstall --database
 
 echo "Starnting scheduler..."
-exec /usr/local/share/fossology/scheduler/agent/fo_scheduler --reset --verbose=3
+if [[ $# = 1 && "$1" == "scheduler" ]]; then
+    exec /usr/local/share/fossology/scheduler/agent/fo_scheduler --reset --verbose=3
+fi
+exec "$@"

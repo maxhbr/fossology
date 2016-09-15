@@ -23,4 +23,7 @@ echo "call parent entrypoint"
 /fossology/docker-entrypoint.sh
 
 echo "Starnting apache..."
-exec /usr/sbin/apache2ctl -D FOREGROUND
+if [[ $# = 1 && "$1" == "web" ]]; then
+    exec /usr/sbin/apache2ctl -D FOREGROUND
+fi
+exec "$@"
