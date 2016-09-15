@@ -17,7 +17,7 @@
 #    FOSSOLOGY_DB_PASSWORD (defaults to fossy)
 #    FOSSOLOGY_SCHEDULER_HOST (defaults to localhost)
 
-set -ex
+set -e
 
 if [ ! "$FOSSOLOGY_DB_HOST" ]; then
     echo "no host specified in the variable \$FOSSOLOGY_DB_HOST"

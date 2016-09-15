@@ -12,10 +12,18 @@ FROM fossology-base
 MAINTAINER Fossology <fossology@fossology.org>
 WORKDIR /fossology
 
+ENV _update="apt-get update"
+ENV _install="apt-get install -y --no-install-recommends"
+ENV _cleanup="eval apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*"
+
+RUN set -x \
+ && $_update && $_install sudo && $_cleanup
 RUN /usr/local/lib/fossology/fo-postinstall \
         --agent \
-        --database \
         --scheduler-only
+        
+RUN set -x \
+ && echo 'fossy ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
 ADD docker-entrypoint.scheduler.sh /fossology
 RUN chmod +x /fossology/docker-entrypoint.scheduler.sh

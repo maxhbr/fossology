@@ -17,7 +17,7 @@
 #    FOSSOLOGY_DB_PASSWORD
 #    FOSSOLOGY_SCHEDULER_HOST
 
-set -ex
+set -e
 
 echo "call parent entrypoint"
 /fossology/docker-entrypoint.sh

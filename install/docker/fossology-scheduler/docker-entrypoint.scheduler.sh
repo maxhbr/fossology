@@ -22,10 +22,15 @@ set -ex
 echo "call parent entrypoint"
 /fossology/docker-entrypoint.sh
 
-/usr/local/lib/fossology/fo-postinstall --database
+echo "setup fossology database"
+sudo /usr/local/lib/fossology/dbcreate
+# sudo /usr/local/lib/fossology/fossinit.php -c /usr/local/etc/fossology
 
 echo "Starnting scheduler..."
 if [[ $# = 1 && "$1" == "scheduler" ]]; then
-    exec /usr/local/share/fossology/scheduler/agent/fo_scheduler --reset --verbose=3
+    exec /usr/local/share/fossology/scheduler/agent/fo_scheduler \
+            --log /dev/stdout \
+            --verbose=3 \
+            --reset
 fi
 exec "$@"
