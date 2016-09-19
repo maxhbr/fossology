@@ -1,6 +1,6 @@
 #!/bin/bash
 # FOSSology docker-entrypoint script
-# Copyright Siemens AG 2016, fabio.huser@siemens.com
+# Copyright Siemens AG 2016, fabio.huser@siemens.com, maximilian.huber@tngtech.com
 #
 # Copying and distribution of this file, with or without modification,
 # are permitted in any medium without royalty provided the copyright
@@ -21,10 +21,6 @@ set -ex
 
 echo "call parent entrypoint"
 /fossology/docker-entrypoint.sh
-
-echo "setup fossology database"
-sudo /usr/local/lib/fossology/dbcreate
-# sudo /usr/local/lib/fossology/fossinit.php -c /usr/local/etc/fossology
 
 echo "Starnting scheduler..."
 if [[ $# = 1 && "$1" == "scheduler" ]]; then

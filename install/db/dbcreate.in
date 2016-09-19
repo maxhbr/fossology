@@ -1,6 +1,7 @@
 #!/bin/bash
 # FOSSology dbcreate script
 # Copyright (C) 2008-2012 Hewlett-Packard Development Company, L.P.
+# Copyright Siemens AG 2016
 #
 # This script checks to see if the the fossology db exists and if not
 # then creates it.
@@ -9,38 +10,62 @@ set -e
 
 if [ "$FOSSOLOGY_DB_HOST" ]; then
   echo "NOTE: using external DB on host $FOSSOLOGY_DB_HOST"
-  exit 0
+
+  if [ ! "$FOSSOLOGY_DB_PASSWORD" ]; then
+      echo "ERROR: the variable \$FOSSOLOGY_DB_PASSWORD must be set"
+      exit 1
+  fi
+  if [ ! "$FOSSOLOGY_DB_NAME" ]; then
+      echo "ERROR: the variable \$FOSSOLOGY_DB_NAME must be set"
+      exit 1
+  fi
+  if [ ! "$FOSSOLOGY_DB_USER" ]; then
+      echo "ERROR: the variable \$FOSSOLOGY_DB_USER must be set"
+      exit 1
+  fi
+
+  prefix="PGPASSWORD=${FOSSOLOGY_DB_PASSWORD}"
+  postfix="-h ${FOSSOLOGY_DB_HOST} -d ${FOSSOLOGY_DB_NAME} -U ${FOSSOLOGY_DB_USER}"
+
+  psql="${prefix} psql ${postfix}"
+  createlang="${prefix} createlang ${postfix}"
+else
+  psql="psql"
+  createlang="createlang"
 fi
+
+################################################################################
+# wait for external DB
 
 echo "*** Setting up the FOSSology database ***"
 
 # At some point this is where we could dynamically set the db password
 
 # first check that postgres is running
-su postgres -c 'echo \\q|psql'
+su postgres -c "${psql} -c '\\q'"
 if [ $? != 0 ]; then
    echo "ERROR: postgresql isn't running"
    exit 1
 fi
 
 # then check to see if the db already exists
-su postgres -c "psql --tuples-only --command \"select * from pg_database where datname = 'fossology';\""|grep fossology >/dev/null 2>&1
+su postgres -c "${psql} --tuples-only --command \"select * from pg_database where datname = 'fossology';\""|grep fossology >/dev/null 2>&1
 if [ $? = 0 ]; then
    echo "NOTE: fossology database already exists, not creating"
    echo "*** Checking for plpgsql support ***"
-   su postgres -c 'createlang -l fossology' |grep -q plpgsql
+   su postgres -c "${createlang} -l" |grep -q plpgsql
    if [ $? = 0 ]; then
       echo "NOTE: plpgsql already exists in fossology database, good"
    else
       echo "NOTE: plpgsql doesn't exist, adding"
-      su postgres -c 'createlang plpgsql fossology'
+      su postgres -c '${createlang} plpgsql'
       if [ $? != 0 ]; then
          echo "ERROR: failed to add plpgsql to fossology database"
       fi
    fi
 else
    echo "*** Initializing database ***"
-   su postgres -c "psql < {$LIBEXECDIR}/fossologyinit.sql"
+   su postgres -c "${psql} < {$LIBEXECDIR}/fossologyinit.sql"
    if [ $? != 0 ] ; then
       echo "ERROR: Database failed during configuration.\n"
       exit 1

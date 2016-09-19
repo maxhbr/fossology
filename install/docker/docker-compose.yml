@@ -1,5 +1,5 @@
 # FOSSology Docker Compose file
-# Copyright Siemens AG 2016, fabio.huser@siemens.com
+# Copyright Siemens AG 2016, fabio.huser@siemens.com, maximilian.huber@tngtech.com
 #
 # Copying and distribution of this file, with or without modification,
 # are permitted in any medium without royalty provided the copyright
@@ -19,7 +19,14 @@ services:
         - https_proxy
         - no_proxy
     image: fossology-base
-    command: exit
+    environment:
+      - FOSSOLOGY_DB_HOST=fossology-db
+      - FOSSOLOGY_DB_NAME=fossology
+      - FOSSOLOGY_DB_USER=fossy
+      - FOSSOLOGY_DB_PASSWORD=fossy
+    command: /usr/local/lib/fossology/dbcreate
+    links:
+      - fossology-db
   fossology-scheduler:
     build:
       context: fossology-scheduler
@@ -36,7 +43,7 @@ services:
       - FOSSOLOGY_DB_PASSWORD=fossy
     command: scheduler
     links:
-      - fossology-base # build base image
+      - fossology-base
       - fossology-db
     # volumes:
     #   - ./_repository:/srv/fossology/repository/
@@ -68,6 +75,9 @@ services:
   #   ...
   fossology-db:
     image: postgres
+    # build:
+    #   context: fossology-db
+    # image: fossology-db
     restart: unless-stopped
     environment:
       - POSTGRES_DB=fossology

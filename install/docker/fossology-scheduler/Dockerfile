@@ -1,5 +1,5 @@
 # FOSSology Dockerfile
-# Copyright Siemens AG 2016, fabio.huser@siemens.com
+# Copyright Siemens AG 2016, fabio.huser@siemens.com, maximilian.huber@tngtech.com
 #
 # Copying and distribution of this file, with or without modification,
 # are permitted in any medium without royalty provided the copyright
@@ -21,7 +21,7 @@ RUN set -x \
 RUN /usr/local/lib/fossology/fo-postinstall \
         --agent \
         --scheduler-only
-        
+
 RUN set -x \
  && echo 'fossy ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
