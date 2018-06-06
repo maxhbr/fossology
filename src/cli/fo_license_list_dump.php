@@ -223,6 +223,10 @@ function getLicenseList($uploadtree_pk, $upload_pk)
       $uploadtree_pk = $uploadtreeRec['uploadtree_pk'];
   }
 
+  if (empty($uploadtree_pk)) {
+    return;
+  }
+
 
   $uploadtreeTablename = GetUploadtreeTableName($upload_pk);
   /** @var ItemTreeBounds */
