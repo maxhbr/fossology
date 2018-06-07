@@ -43,6 +43,8 @@ $Usage = "Usage: " . basename($argv[0]) . "
 $upload = ""; // upload id
 $item = ""; // uploadtree id
 
+$writeToStdout = true;
+
 $longopts = array("username:", "password:", "container:");
 $options = getopt("c:u:t:hxX:", $longopts);
 if (empty($options) || !is_array($options))
@@ -211,7 +213,7 @@ function getClearedLicensesForDump(DbManager $dbManager, ItemTreeBounds $itemTre
 
 function getLicenseList($uploadtree_pk, $upload_pk)
 {
-  /* @var $dbManager DbManager */  
+  /* @var $dbManager DbManager */
   $dbManager = $GLOBALS['container']->get('db.manager');
   /* @var $uploadDao UploadDao */
   $uploadDao = $GLOBALS['container']->get("dao.upload");
@@ -221,12 +223,13 @@ function getLicenseList($uploadtree_pk, $upload_pk)
               array($upload_pk),
               __METHOD__.'.find.uploadtree.to.use.in.browse.link' );
       $uploadtree_pk = $uploadtreeRec['uploadtree_pk'];
+      error_log("... determined uploadtree_pk=[$uploadtree_pk])");
   }
 
   if (empty($uploadtree_pk)) {
+      error_log("ERR: Failed to determine uploadtree_pk for upload_pk=[$upload_pk]");
     return;
   }
-
 
   $uploadtreeTablename = GetUploadtreeTableName($upload_pk);
   /** @var ItemTreeBounds */
@@ -236,7 +239,17 @@ function getLicenseList($uploadtree_pk, $upload_pk)
   $scannerLicenses = getAgentFileLicenseMatchesForDump($dbManager, $itemTreeBounds);
   $clearedLicenses = getClearedLicensesForDump($dbManager, $itemTreeBounds);
 
-  $outstream = fopen("php://output", 'w');
+  $outstream = null;
+  if(false)
+  {
+      $outstream = fopen("php://output", 'w');
+  }
+  else
+  {
+      $filename = "./dump-$upload_pk-$uploadtree_pk.csv";
+      error_log("... write to file=[$filename] into CWD");
+      $outstream = fopen($filename, "w");
+  }
   array_walk($scannerLicenses, '__outputCSV', $outstream);
   array_walk($clearedLicenses, '__outputCSV', $outstream);
   fclose($outstream);
@@ -247,11 +260,12 @@ function handleUpload($item, $upload, $user)
     $return_value = read_permission($upload, $user); // check if the user has the permission to read this upload
     if (empty($return_value))
     {
-        echo _("The user '$user' has no permission to read the information of upload $upload\n");
+
+        error_log("The user '$user' has no permission to read the information of upload $upload\n");
         return;
     }
 
-    GetLicenseList($item, $upload);
+    getLicenseList($item, $upload);
 }
 
 function handleAllUploads($user)
@@ -264,12 +278,17 @@ function handleAllUploads($user)
     $dbManager->prepare("getAllUploads", $sql);
 
     $result = $dbManager->execute("getAllUploads", array());
-    while ($row = $dbManager->fetchArray($result))
-    {
-        handleUpload('', $row['upload_pk'],$user);
+    try {
+        while ($row = $dbManager->fetchArray($result))
+        {
+            $upload_pk = $row['upload_pk'];
+            error_log("Handle upload_pk=[$upload_pk] (uploadtree_pk=[])");
+            handleUpload('', $upload_pk, $user);
+            file_put_contents("already_done_upload_tree_pks", "[$upload_pk]", FILE_APPEND | LOCK_EX);
+        }
+    } finally {
+        $dbManager->freeResult($result);
     }
-
-    $dbManager->freeResult($result);
 }
 
 /** get upload id through uploadtree id */
