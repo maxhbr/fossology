@@ -277,11 +277,20 @@ function handleAllUploads($user)
 
     $dbManager->prepare("getAllUploads", $sql);
 
+
+    $alreadyDoneString = file_get_contents("already_done_upload_tree_pks");
+
     $result = $dbManager->execute("getAllUploads", array());
     try {
         while ($row = $dbManager->fetchArray($result))
         {
             $upload_pk = $row['upload_pk'];
+
+            if (strpos($alreadyDoneString, "[$upload_pk]") !== false) {
+                error_log("Skip upload_pk=[$upload_pk]");
+                continue;
+            }
+
             error_log("Handle upload_pk=[$upload_pk] (uploadtree_pk=[])");
             handleUpload('', $upload_pk, $user);
             file_put_contents("already_done_upload_tree_pks", "[$upload_pk]", FILE_APPEND | LOCK_EX);
