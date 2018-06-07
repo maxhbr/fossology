@@ -292,8 +292,12 @@ function handleAllUploads($user)
             }
 
             error_log("Handle upload_pk=[$upload_pk] (uploadtree_pk=[])");
-            handleUpload('', $upload_pk, $user);
-            file_put_contents("already_done_upload_tree_pks", "[$upload_pk]", FILE_APPEND | LOCK_EX);
+            try {
+                handleUpload('', $upload_pk, $user);
+                file_put_contents("already_done_upload_tree_pks", "[$upload_pk]", FILE_APPEND | LOCK_EX);
+            }catch ( Exception $e ) {
+                error_log("... failed to handle upload_pk=[$upload_pk]");
+            }
         }
     } finally {
         $dbManager->freeResult($result);
