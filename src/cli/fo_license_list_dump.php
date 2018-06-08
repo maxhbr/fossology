@@ -211,30 +211,69 @@ function getClearedLicensesForDump(DbManager $dbManager, ItemTreeBounds $itemTre
     return $matches;
 }
 
-function getLicenseList($uploadtree_pk, $upload_pk)
+/*
+ * based on ClearingDao::getBulkHistory
+ */
+function getBulkHistoryForDump($uploadTreeTableName, DbManager $dbManager)
 {
-  /* @var $dbManager DbManager */
-  $dbManager = $GLOBALS['container']->get('db.manager');
-  /* @var $uploadDao UploadDao */
-  $uploadDao = $GLOBALS['container']->get("dao.upload");
+    $stmt = __METHOD__ . "." . $uploadTreeTableName . time();
 
-  if (empty($uploadtree_pk)) {
-      $uploadtreeRec = $dbManager->getSingleRow('SELECT uploadtree_pk FROM uploadtree WHERE parent IS NULL AND upload_fk=$1',
-              array($upload_pk),
-              __METHOD__.'.find.uploadtree.to.use.in.browse.link' );
-      $uploadtree_pk = $uploadtreeRec['uploadtree_pk'];
-      error_log("... determined uploadtree_pk=[$uploadtree_pk])");
-  }
+    $sql = "WITH alltried AS (
+            SELECT lr.lrb_pk, ce.clearing_event_pk ce_pk, lr.rf_text, ce.uploadtree_fk AS tried
+            FROM license_ref_bulk lr
+              LEFT JOIN highlight_bulk h ON lrb_fk = lrb_pk
+              LEFT JOIN clearing_event ce ON ce.clearing_event_pk = h.clearing_event_fk
+              LEFT JOIN $uploadTreeTableName ut ON ut.uploadtree_pk = ce.uploadtree_fk
+              INNER JOIN $uploadTreeTableName ut2 ON ut2.uploadtree_pk = lr.uploadtree_fk
+            ), aggregated_tried AS (
+            SELECT DISTINCT ON(lrb_pk) lrb_pk, ce_pk, rf_text AS text, tried
+            FROM (
+              SELECT DISTINCT ON(lrb_pk) lrb_pk, ce_pk, rf_text, tried FROM alltried 
+            ) AS result ORDER BY lrb_pk)
+            SELECT lrb_pk, text, rf_shortname, removing, tried, ce_pk
+            FROM aggregated_tried
+              INNER JOIN license_set_bulk lsb ON lsb.lrb_fk = lrb_pk
+              INNER JOIN license_ref lrf ON lsb.rf_fk = lrf.rf_pk";
 
-  if (empty($uploadtree_pk)) {
-      error_log("ERR: Failed to determine uploadtree_pk for upload_pk=[$upload_pk]");
-    return;
-  }
+    $dbManager->prepare($stmt, $sql);
+    $res = $dbManager->execute($stmt, array());
 
-  $uploadtreeTablename = GetUploadtreeTableName($upload_pk);
-  /** @var ItemTreeBounds */
-  $itemTreeBounds = $uploadDao->getItemTreeBounds($uploadtree_pk, $uploadtreeTablename);
+    $bulks = array();
+    while ($row = $dbManager->fetchArray($res))
+    {
+        $bulkRun = $row['lrb_pk'];
+        if (!array_key_exists($bulkRun, $bulks))
+        {
+            $bulks[$bulkRun] = array(
+                "bulkId" => $row['lrb_pk'],
+                "id" => $row['ce_pk'],
+                "text" => $row['text'],
+                "removedLicenses" => array(),
+                "addedLicenses" => array());
+        }
+        $key = $dbManager->booleanFromDb($row['removing']) ? 'removedLicenses' : 'addedLicenses';
+        $bulks[$bulkRun][$key][] = $row['rf_shortname'];
+    }
 
+    $dbManager->freeResult($res);
+    return $bulks;
+}
+
+function getItemTreeBounds($uploadtree_pk, $upload_pk)
+{
+    /* @var $uploadDao UploadDao */
+    $uploadDao = $GLOBALS['container']->get("dao.upload");
+
+    $uploadtreeTablename = GetUploadtreeTableName($upload_pk);
+    /** @var ItemTreeBounds */
+    return $uploadDao->getItemTreeBounds($uploadtree_pk, $uploadtreeTablename);
+}
+
+function getLicenseList($uploadtree_pk, $upload_pk, DbManager $dbManager)
+{
+
+    /** @var ItemTreeBounds */
+    $itemTreeBounds = getItemTreeBounds($uploadtree_pk, $upload_pk);
 
   $scannerLicenses = getAgentFileLicenseMatchesForDump($dbManager, $itemTreeBounds);
   $clearedLicenses = getClearedLicensesForDump($dbManager, $itemTreeBounds);
@@ -255,17 +294,79 @@ function getLicenseList($uploadtree_pk, $upload_pk)
   fclose($outstream);
 }
 
-function handleUpload($item, $upload, $user)
+function getBulkList($uploadTreeTableName)
 {
-    $return_value = read_permission($upload, $user); // check if the user has the permission to read this upload
+    $bulkDir="./bulkFiles";
+    mkdir($bulkDir);
+
+    /* @var $dbManager DbManager */
+    $dbManager = $GLOBALS['container']->get('db.manager');
+    $bulks = getBulkHistoryForDump($uploadTreeTableName, $dbManager);
+
+    $csvFile = "./bulkFiles.csv";
+    $csvRemoveFile = "./bulkFilesRemove.csv";
+    $outstream = fopen($csvFile, "w");
+    $outstreamRemove = fopen($csvRemoveFile, "w");
+    foreach ($bulks as &$row) {
+        $hash = hash("sha256", $row["text"]);
+        $file = "$bulkDir/$hash";
+        if (! file_exists($file)) {
+            file_put_contents($file, $row["text"]);
+        }
+
+        foreach ($row['addedLicenses'] as &$addedLicense) {
+            $matchData = array();
+            $matchData[] = $file;
+            $matchData[] = $addedLicense;
+            $matchData[] = '';
+            $matchData[] = 'BULK';
+            $matchData[] = "";
+            $matchData[] = "";
+            __outputCSV($matchData, array(), $outstream);
+        }
+
+        foreach ($row['removedLicenses'] as &$removedLicense) {
+            $matchData = array();
+            $matchData[] = $file;
+            $matchData[] = $removedLicense;
+            $matchData[] = '';
+            $matchData[] = 'BULK_REMOVE';
+            $matchData[] = "";
+            $matchData[] = "";
+            __outputCSV($matchData, array(), $outstreamRemove);
+        }
+        echo "\n";
+    }
+    fclose($outstream);
+    fclose($outstreamRemove);
+}
+
+function handleUpload($uploadtree_pk, $upload_pk, $user)
+{
+    $return_value = read_permission($upload_pk, $user); // check if the user has the permission to read this upload
     if (empty($return_value))
     {
-
-        error_log("The user '$user' has no permission to read the information of upload $upload\n");
+        error_log("The user '$user' has no permission to read the information of upload $upload_pk\n");
         return;
     }
 
-    getLicenseList($item, $upload);
+    /* @var $dbManager DbManager */
+    $dbManager = $GLOBALS['container']->get('db.manager');
+
+    if (empty($uploadtree_pk)) {
+        $uploadtreeRec = $dbManager->getSingleRow('SELECT uploadtree_pk FROM uploadtree WHERE parent IS NULL AND upload_fk=$1',
+            array($upload_pk),
+            __METHOD__.'.find.uploadtree.to.use.in.browse.link' );
+        $uploadtree_pk = $uploadtreeRec['uploadtree_pk'];
+        error_log("... determined uploadtree_pk=[$uploadtree_pk])");
+    }
+
+    if (empty($uploadtree_pk)) {
+        error_log("ERR: Failed to determine uploadtree_pk for upload_pk=[$upload_pk]");
+        return;
+    }
+
+    getLicenseList($uploadtree_pk, $upload_pk, $dbManager);
 }
 
 function handleAllUploads($user)
@@ -303,7 +404,6 @@ function handleAllUploads($user)
         $dbManager->freeResult($result);
     }
 }
-
 /** get upload id through uploadtree id */
 if (is_numeric($item) && !is_numeric($upload)) $upload = GetUploadID($item);
 
@@ -313,6 +413,7 @@ account_check($user, $passwd); // check username/password
 if (!is_numeric($upload) || (!empty($item) && !is_numeric($item)))
 {
     handleAllUploads($user);
+    getBulkList("uploadtree_a");
 }
 else
 {
