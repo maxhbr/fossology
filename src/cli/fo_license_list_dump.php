@@ -304,7 +304,9 @@ function getBulkList($uploadTreeTableName)
     $bulks = getBulkHistoryForDump($uploadTreeTableName, $dbManager);
 
     $csvFile = "./bulkFiles.csv";
+    $csvRemoveFile = "./bulkFilesRemove.csv";
     $outstream = fopen($csvFile, "w");
+    $outstreamRemove = fopen($csvRemoveFile, "w");
     foreach ($bulks as &$row) {
         $hash = hash("sha256", $row["text"]);
         $file = "$bulkDir/$hash";
@@ -331,11 +333,12 @@ function getBulkList($uploadTreeTableName)
             $matchData[] = 'BULK_REMOVE';
             $matchData[] = "";
             $matchData[] = "";
-            __outputCSV($matchData, array(), $outstream);
+            __outputCSV($matchData, array(), $outstreamRemove);
         }
         echo "\n";
     }
     fclose($outstream);
+    fclose($outstreamRemove);
 }
 
 function handleUpload($uploadtree_pk, $upload_pk, $user)
