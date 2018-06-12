@@ -294,7 +294,7 @@ function getLicenseList($uploadtree_pk, $upload_pk, DbManager $dbManager)
   fclose($outstream);
 }
 
-function getBulkList($uploadTreeTableName)
+function dumpBulkList($uploadTreeTableName)
 {
     $bulkDir="./bulkFiles";
     mkdir($bulkDir);
@@ -339,6 +339,64 @@ function getBulkList($uploadTreeTableName)
     }
     fclose($outstream);
     fclose($outstreamRemove);
+}
+
+function dumpLicenseData()
+{
+    /* @var $dbManager DbManager */
+    $dbManager = $GLOBALS['container']->get('db.manager');
+    $sql = "WITH enriched_license_map AS (
+              SELECT rf_fk, rf_parent, usage, rf_shortname AS rf_shortname_parent
+                FROM license_map
+                JOIN license_ref on rf_parent = rf_pk
+               WHERE rf_detector_type != 2
+            )
+            SELECT rf_pk, rf_shortname, rf_text, rf_shortname_parent, rf_parent, usage
+              FROM license_ref
+            LEFT JOIN enriched_license_map as map ON rf_pk = rf_fk
+              WHERE rf_active = TRUE
+                AND rf_detector_type != 2";
+    $statementName = __METHOD__;
+    $dbManager->prepare($statementName, $sql);
+    $result = $dbManager->execute($statementName, array());
+
+
+    $licensesDir="./licenses";
+    $csvFile = "./licenses.csv";
+    $outstream = fopen($csvFile, "w");
+    mkdir($licensesDir);
+    while ($row = $dbManager->fetchArray($result))
+    {
+        $hash = hash("sha256", $row["rf_text"]);
+        if ($row["rf_shortname_parent"] != null)
+        {
+            $file = $licensesDir."/".str_replace("/", "_", $row["rf_shortname_parent"]."_".$row["rf_shortname"]."_".$hash);
+            $matchData = array();
+            $matchData[] = $file;
+            $matchData[] = $row["rf_shortname_parent"];
+            $matchData[] = '';
+            $matchData[] = 'LICENSE_INDIRECT_'.$row["usage"];
+            $matchData[] = "";
+            $matchData[] = "rf_pk=[".$row["rf_pk"]."]";
+            __outputCSV($matchData, array(), $outstream);
+        }
+        else
+        {
+            $file = $licensesDir."/".str_replace("/", "_", $row["rf_shortname"]."_".$hash);
+            $matchData = array();
+            $matchData[] = $file;
+            $matchData[] = $row["rf_shortname"];
+            $matchData[] = '';
+            $matchData[] = 'LICENSE';
+            $matchData[] = "";
+            $matchData[] = "rf_pk=[".$row["rf_pk"]."]";
+            __outputCSV($matchData, array(), $outstream);
+        }
+        if (! file_exists($file)) {
+            file_put_contents($file, $row["rf_text"]);
+        }
+    }
+    $dbManager->freeResult($result);
 }
 
 function handleUpload($uploadtree_pk, $upload_pk, $user)
@@ -413,7 +471,8 @@ account_check($user, $passwd); // check username/password
 if (!is_numeric($upload) || (!empty($item) && !is_numeric($item)))
 {
     handleAllUploads($user);
-    getBulkList("uploadtree_a");
+    dumpBulkList("uploadtree_a");
+    dumpLicenseData();
 }
 else
 {
