@@ -383,7 +383,6 @@ function dumpLicenseData()
         else
         {
             $file = $licensesDir."/".str_replace("/", "_", $row["rf_shortname"]."_".$hash);
-            $file = str_replace("/", "_", $file);
             $matchData = array();
             $matchData[] = $file;
             $matchData[] = $row["rf_shortname"];
