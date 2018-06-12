@@ -370,7 +370,7 @@ function dumpLicenseData()
         $hash = hash("sha256", $row["rf_text"]);
         if ($row["rf_shortname_parent"] != null)
         {
-            $file = $licensesDir."/".$row["rf_shortname_parent"]."_".$row["rf_shortname"]."_".$hash;
+            $file = $licensesDir."_".$row["rf_shortname_parent"]."_".$row["rf_shortname"]."_".$hash;
             $matchData = array();
             $matchData[] = $file;
             $matchData[] = $row["rf_shortname_parent"];
