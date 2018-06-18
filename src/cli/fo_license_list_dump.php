@@ -19,6 +19,7 @@
 error_reporting( E_ALL | E_STRICT );
 
 use Fossology\Lib\Dao\ClearingDao;
+use Fossology\Lib\Data\DecisionScopes;
 use Fossology\Lib\Db\DbManager;
 use Fossology\Lib\Dao\UploadDao;
 use Fossology\Lib\Dao\LicenseDao;
@@ -160,15 +161,39 @@ function getClearedLicensesForDump(DbManager $dbManager, ItemTreeBounds $itemTre
 
     $groupId = Auth::getGroupId();
 
-    // TODO: calls private method
-//    $decisionsCte = $clearingDao->getRelevantDecisionsCte($itemTreeBounds, $groupId, $onlyCurrent=true, $statementName, $params, $condition);
-    $reflector = new ReflectionObject($clearingDao);
-    $method = $reflector->getMethod('getRelevantDecisionsCte');
-    $method->setAccessible(true);
-    $decisionsCte = $method->invokeArgs($clearingDao,
-        array($itemTreeBounds, $groupId, $onlyCurrent=true, &$statementName, &$params, $condition));
+//    // TODO: calls private method
+//    // $decisionsCte = $clearingDao->getRelevantDecisionsCte($itemTreeBounds, $groupId, $onlyCurrent=true, $statementName, $params, $condition);
+//    $reflector = new ReflectionObject($clearingDao);
+//    $method = $reflector->getMethod('getRelevantDecisionsCte');
+//    $method->setAccessible(true);
+//    $decisionsCte = $method->invokeArgs($clearingDao,
+//        array($itemTreeBounds, $groupId, $onlyCurrent=true, &$statementName, &$params, $condition));
 
-    $params[] = DecisionTypes::IRRELEVANT;
+
+    $uploadTreeTable = $itemTreeBounds->getUploadTreeTableName();
+    $sql_upload = "";
+    if ('uploadtree' === $uploadTreeTable || 'uploadtree_a' === $uploadTreeTable) {
+        $params[] = $itemTreeBounds->getUploadId();
+        $p = "$" . count($params);
+        $sql_upload = "ut.upload_fk=$p AND ";
+    }else{
+        error_log("UploadtreePK was empty");
+    }
+
+    $globalScope = DecisionScopes::REPO;
+    $WIP = DecisionTypes::WIP;
+    $IRR = DecisionTypes::IRRELEVANT;
+    $decisionsCte = "WITH decision AS (
+              SELECT
+                cd.clearing_decision_pk AS id,
+                cd.pfile_fk AS pfile_id,
+                cd.decision_type AS type_id
+              FROM clearing_decision cd
+                INNER JOIN $uploadTreeTable ut
+                  ON ut.pfile_fk = cd.pfile_fk AND cd.scope = $globalScope OR ut.uploadtree_pk = cd.uploadtree_fk
+              WHERE $sql_upload $condition
+                AND cd.decision_type!=$WIP AND cd.decision_type!=$IRR)";
+
     $sql = "$decisionsCte
             SELECT
               lr.rf_pk AS license_id,
@@ -183,7 +208,8 @@ function getClearedLicensesForDump(DbManager $dbManager, ItemTreeBounds $itemTre
               INNER JOIN clearing_event ce ON ce.clearing_event_pk = cde.clearing_event_fk
               INNER JOIN license_ref lr ON lr.rf_pk = ce.rf_fk
               INNER JOIN pfile as PF ON decision.pfile_id = pfile_pk
-            WHERE NOT ce.removed AND type_id!=$".count($params);
+            WHERE NOT ce.removed";
+    echo $sql;
 
     $dbManager->prepare($statementName, $sql);
 
@@ -275,9 +301,6 @@ function getLicenseList($uploadtree_pk, $upload_pk, DbManager $dbManager)
     /** @var ItemTreeBounds */
     $itemTreeBounds = getItemTreeBounds($uploadtree_pk, $upload_pk);
 
-  $scannerLicenses = getAgentFileLicenseMatchesForDump($dbManager, $itemTreeBounds);
-  $clearedLicenses = getClearedLicensesForDump($dbManager, $itemTreeBounds);
-
   $outstream = null;
   if(false)
   {
@@ -289,8 +312,16 @@ function getLicenseList($uploadtree_pk, $upload_pk, DbManager $dbManager)
       error_log("... write to file=[$filename] into CWD");
       $outstream = fopen($filename, "w");
   }
-  array_walk($scannerLicenses, '__outputCSV', $outstream);
-  array_walk($clearedLicenses, '__outputCSV', $outstream);
+
+  if(false){ // skp scanner findings
+      $scannerLicenses = getAgentFileLicenseMatchesForDump($dbManager, $itemTreeBounds);
+      array_walk($scannerLicenses, '__outputCSV', $outstream);
+  }
+
+  if(true){ // dump conclusions
+      $clearedLicenses = getClearedLicensesForDump($dbManager, $itemTreeBounds);
+      array_walk($clearedLicenses, '__outputCSV', $outstream);
+  }
   fclose($outstream);
 }
 
