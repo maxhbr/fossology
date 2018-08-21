@@ -33,6 +33,14 @@ use Fossology\Lib\Data\DecisionTypes;
 require_once("$MODDIR/lib/php/common-cli.php");
 cli_Init();
 
+if (! class_exists('MongoDB\Driver\Manager')) {
+  print "ERROR: MongoDB PHP Library not found
+
+This CLI script depends on the MongoDB PHP Library which can be installed via composer
+";
+  return 1;
+}
+
 $Usage = "Usage: " . basename($argv[0]) . "
   -u upload id             :: upload id
   -t uploadtree id         :: uploadtree id
@@ -339,14 +347,16 @@ function handleUpload($uploadtree_pk, $upload_pk, $user, $mongoManager)
     /* @var $dbManager DbManager */
     $dbManager = $GLOBALS['container']->get('db.manager');
 
-    if (empty($uploadtree_pk)) {
+    if (empty($uploadtree_pk))
+    {
         $uploadtreeRec = $dbManager->getSingleRow('SELECT uploadtree_pk FROM uploadtree WHERE parent IS NULL AND upload_fk=$1',
             array($upload_pk),
             __METHOD__.'.find.uploadtree.to.use.in.browse.link' );
         $uploadtree_pk = $uploadtreeRec['uploadtree_pk'];
     }
 
-    if (empty($uploadtree_pk)) {
+    if (empty($uploadtree_pk))
+    {
         error_log("ERR: Failed to determine uploadtree_pk for upload_pk=[$upload_pk]");
         return;
     }
@@ -369,28 +379,67 @@ function handleAllUploads($user, $mongoManager)
     $alreadyDoneString = file_get_contents("already_done_upload_tree_pks");
 
     $result = $dbManager->execute("getAllUploads", array());
-    try {
+    try
+    {
         while ($row = $dbManager->fetchArray($result))
         {
             $upload_pk = $row['upload_pk'];
 
-            if (strpos($alreadyDoneString, "[$upload_pk]") !== false) {
+            if (strpos($alreadyDoneString, "[$upload_pk]") !== false)
+            {
                 error_log("Skip upload_pk=[$upload_pk]");
                 continue;
             }
 
             error_log("Handle upload_pk=[$upload_pk] (uploadtree_pk=[])");
-            try {
+            try
+            {
                 handleUpload('', $upload_pk, $user, $mongoManager);
                 file_put_contents("already_done_upload_tree_pks", "[$upload_pk]", FILE_APPEND | LOCK_EX);
-            }catch ( Exception $e ) {
+            }
+            catch ( Exception $e )
+            {
                 error_log("... failed to handle upload_pk=[$upload_pk]");
             }
         }
-    } finally {
+    }
+    finally
+    {
         $dbManager->freeResult($result);
     }
 }
+
+function dumpAllFiles($mongoManager)
+{
+  /* @var $dbManager DbManager */
+  $dbManager = $GLOBALS['container']->get('db.manager');
+
+  $sql = "SELECT * FROM pfile INNER JOIN mimetype ON pfile.pfile_mimetypefk = mimetype.mimetype_pk";
+
+  $dbManager->prepare($stmt, $sql);
+  $result = $dbManager->execute($stmt, array());
+
+  $matches = array();
+  while ($row = $dbManager->fetchArray($result))
+  {
+    $fileNameInRepo=strtolower($row['pfile_sha1'].".".$row['pfile_md5']).".".$row['pfile_size'];
+    $fileNameInRepo= substr ($fileNameInRepo , 0, 2).'/'.
+                   substr ($fileNameInRepo , 2, 2).'/'.
+                   substr ($fileNameInRepo , 4, 2).'/'.$fileNameInRepo;
+
+    $matches[] = [
+      'source' => 'FILE',
+      'path' => $fileNameInRepo,
+      'size' => $row['pfile_size'],
+      'mimetype' => $row['mimetype_name']
+    ];
+
+  }
+  $dbManager->freeResult($result);
+
+  writeDataToMongo($matches, $mongoManager);
+}
+
 /** get upload id through uploadtree id */
 if (is_numeric($item) && !is_numeric($upload)) $upload = GetUploadID($item);
 
@@ -404,6 +453,7 @@ if (!is_numeric($upload) || (!empty($item) && !is_numeric($item)))
   handleAllUploads($user, $mongoManager);
   dumpBulkList("uploadtree_a", $mongoManager);
   dumpLicenseData($mongoManager);
+  dumpAllFiles($mongoManager);
 }
 else
 {
