@@ -97,21 +97,30 @@ Licenses* deserializeFromFile(char* filename, unsigned minAdjacentMatches, unsig
 Licenses* deserialize(FILE* fp, unsigned minAdjacentMatches, unsigned maxLeadingDiff) {
   GArray* licenses = g_array_new(TRUE, FALSE, sizeof(License));
 
-  SerializingMeta meta;
-  while (fread(&meta, sizeof(SerializingMeta), 1, fp) == 1) {
-    License license = { .refId = meta.refId };
-
-    license.shortname = calloc(1,(size_t) meta.shortnameLen + 1);
-    if(fread(license.shortname, sizeof(char), meta.shortnameLen, fp) != meta.shortnameLen){
-      strerror(errno);
-    }
-
-    license.tokens = deserializeTokens(fp, meta.tokensLen);
-
+  License* license;
+  while ((license = deserializeOne(fp)) != NULL) {
     g_array_append_vals(licenses, &license, 1);
   }
 
   return buildLicenseIndexes(licenses, minAdjacentMatches, maxLeadingDiff);
+}
+
+License* deserializeOne(FILE* fp) {
+  SerializingMeta meta;
+  if (fread(&meta, sizeof(SerializingMeta), 1, fp) != 1) {
+    return NULL;
+  }
+
+  License* license = malloc(sizeof(License));
+  license->refId = meta.refId;
+
+  license->shortname = calloc(1,(size_t) meta.shortnameLen + 1);
+  if(fread(license->shortname, sizeof(char), meta.shortnameLen, fp) != meta.shortnameLen){
+    strerror(errno);
+  }
+
+  license->tokens = deserializeTokens(fp, meta.tokensLen);
+  return license;
 }
 
 GArray* deserializeTokens(FILE* fp, guint tokensLen) {
