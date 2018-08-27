@@ -45,26 +45,6 @@ Licenses* getNLicensesWithText2(int count, ...) {
   return buildLicenseIndexes(licenseArray, 1, 0);
 }
 
-
-License* roundtripOne(License* license) {
-  size_t size;
-  char *ptr;
-  FILE *out = open_memstream(&ptr, &size);
-  if (out == NULL){
-    return NULL;
-  }
-
-  serializeOne(license, out);
-  fclose(out);
-
-  FILE *in = fmemopen(ptr, size, "r");
-  License* lic = deserializeOne(in);
-
-  free(ptr);
-
-  return lic;
-}
-
 Licenses* roundtrip(Licenses* licenses) {
   FILE *out, *in;
   size_t size;
@@ -115,13 +95,11 @@ void assert_Licenses(Licenses* lics1, Licenses* lics2) {
   }
 }
 
-void test_roundtripOne_noTokes() {
-  License license = { .refId = 42,
-                      .shortname = "test_roundtripOne_noTokes",
-                      .tokens = g_array_new(TRUE, FALSE, sizeof(Token)) };
-  License* returnedLicense = roundtripOne(&license);
+void test_roundtrip_one() {
+  Licenses* licenses = getNLicensesWithText2(1,"a b cde f");
+  Licenses* returnedLicenses = roundtrip(licenses);
 
-  assert_License(&license, returnedLicense);
+  assert_Licenses(licenses, returnedLicenses);
 }
 
 void test_roundtrip() {
@@ -132,7 +110,7 @@ void test_roundtrip() {
 }
 
 CU_TestInfo serialize_testcases[] = {
-  {"Test roundtrip with one without tokens:", test_roundtripOne_noTokes},
+  {"Test roundtrip with empty:", test_roundtrip_one},
   {"Test roundtrip with some licenses with tokens:", test_roundtrip},
   CU_TEST_INFO_NULL
 };

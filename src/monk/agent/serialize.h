@@ -37,7 +37,6 @@ int serializeOneTokens(GArray* tokens, FILE* fp);
 
 Licenses* deserializeFromFile(char* filename, unsigned minAdjacentMatches, unsigned maxLeadingDiff);
 Licenses* deserialize(FILE* fp, unsigned minAdjacentMatches, unsigned maxLeadingDiff);
-License* deserializeOne(FILE* fp);
 GArray* deserializeTokens(FILE* fp, guint tokensLen);
 
 #endif // MONK_AGENT_SERIALIZE_H
