@@ -130,7 +130,9 @@ int main(int argc, char** argv) {
 
   Licenses* licenses;
   if (state->scanMode != MODE_CLI_OFFLINE) {
+    int oldArgc = argc;
     fo_scheduler_connect_dbMan(&argc, argv, &(state->dbManager));
+    fileOptInd = fileOptInd - oldArgc + argc;
 
     PGresult* licensesResult = queryAllLicenses(state->dbManager);
     licenses = extractLicenses(state->dbManager, licensesResult, MIN_ADJACENT_MATCHES, MAX_LEADING_DIFF);
