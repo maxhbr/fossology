@@ -42,7 +42,7 @@ class LicenseClearedGetter extends ClearedGetterCommon
   /** @var string[] */
   private $licenseCache = array();
   /** @var agentNames */
-  protected $agentNames = array('nomos' => 'N', 'monk' => 'M', 'ninka' => 'Nk');
+  protected $agentNames = array('nomos' => 'N', 'monk' => 'M', 'ninka' => 'Nk', 'rigel' => 'R');
 
   public function __construct() {
     global $container;
