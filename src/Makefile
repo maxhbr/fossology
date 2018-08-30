@@ -22,6 +22,7 @@ DIRS = \
 	mimetype \
 	monk \
 	ninka \
+	rigel \
 	nomos \
 	pkgagent \
 	readmeoss \
