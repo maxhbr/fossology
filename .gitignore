@@ -145,6 +145,9 @@ src/reportImport/agent/reportImport
 /src/ninka/agent_tests/Functional/ninka
 /src/ninka/agent_tests/Unit/test_ninka
 /src/ninka/agent/ninka
+/src/rigel/agent_tests/Functional/rigel
+/src/rigel/agent_tests/Unit/test_rigel
+/src/rigel/agent/rigel
 /src/cli/fo_monk_license_list
 /src/cli/fo_ninka_license_list
 /install/scripts/php.ini

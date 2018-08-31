@@ -53,6 +53,7 @@ So that that results in the following packages and relationships:
   * fossology-monk Depends on fossology-common
   * fossology-monkbulk Depends on fossology-common
   * fossology-ninka Depends on fossology-common
+  * fossology-rigel Depends on fossology-common
   * fossology-decider Depends on fossology-common
   * fossology-deciderjob Depends on fossology-common
   * fossology-readmeoss Depends on fossology-common and fossology-copyright

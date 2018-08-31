@@ -20,7 +20,7 @@ Url:            PBURL
 Source:         PBSRC
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(id -u -n)
 Requires:       fossology-web fossology-scheduler fossology-ununpack fossology-copyright fossology-buckets fossology-mimetype fossology-delagent fossology-wgetagent fossology-decider fossology-spdx2 fossology-reuser
-#Recommends:		fossology-decider, fossology-spdx2, fossology-reuser, fossology-ninka
+#Recommends:		fossology-decider, fossology-spdx2, fossology-reuser, fossology-ninka, fossology-rigel
 BuildRequires:  postgresql-devel >= 8.1.11,glib2-devel,libxml2,gcc,make,perl,rpm-devel,pcre-devel,openssl-devel,gcc-c++,php,boost-devel,php-phar,php-mbstring,php-xml,curl,PBBUILDDEP
 Summary:        FOSSology is a license compliance analysis  tool
 
@@ -103,6 +103,11 @@ Group:          PBGRP
 Requires:       fossology-common
 #Recommends:     ninka >=1.2
 Summary:        Architecture for analyzing software, Ninka
+Group:          PBGRP
+
+%package rigel
+Requires:       fossology-common
+Summary:        Architecture for analyzing software, Rigel
 Group:          PBGRP
 
 %package decider
@@ -197,6 +202,9 @@ This package contains the SPDX v2 agent programs and their resources.
 
 %description ninka
 This package contains the ninka wrapper agent programs and their resources.
+
+%description rigel
+This package contains the rigel wrapper agent programs and their resources.
 
 %description decider
 This package contains the decider agent programs and their resources.
@@ -349,6 +357,11 @@ cp VERSION $RPM_BUILD_ROOT%{_sysconfdir}/PBPROJ/
 %defattr(-,root,root)
 %{_sysconfdir}/PBPROJ/mods-enabled/ninka
 %{_datadir}/PBPROJ/ninka/*
+
+%files rigel
+%defattr(-,root,root)
+%{_sysconfdir}/PBPROJ/mods-enabled/rigel
+%{_datadir}/PBPROJ/rigel/*
 
 %files decider
 %defattr(-,root,root)
