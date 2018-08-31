@@ -24,7 +24,7 @@ class RigelAgentPlugin extends AgentPlugin
 {
   public function __construct() {
     $this->Name = "agent_rigel";
-    $this->Title =  _("Rigel License Analysis");
+    $this->Title =  _("Rigel License Analysis, scanning for licenses using machine learning");
     $this->AgentName = "rigel";
 
     parent::__construct();
