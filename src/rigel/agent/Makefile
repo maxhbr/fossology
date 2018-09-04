@@ -11,7 +11,7 @@ include $(VARS)
 
 DEF = -DDATADIR='"$(MODDIR)"'
 CXXFLAGS_LOCAL = $(FO_CXXFLAGS) -I. -Wall -fopenmp
-CXXFLAGS_LINK = $(FO_CXXLDFLAGS) -fopenmp
+CXXFLAGS_LINK = $(FO_CXXLDFLAGS) -fopenmp -lboost_system
 
 EXE = rigel
 
