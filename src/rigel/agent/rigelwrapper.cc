@@ -22,6 +22,9 @@
 #include "utils.hpp"
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
+#include <boost/property_tree/ini_parser.hpp>
+#include <boost/iostreams/device/array.hpp>
+#include <boost/iostreams/stream.hpp>
 
 using boost::asio::ip::tcp;
 using boost::property_tree::ptree; using boost::property_tree::read_json; using boost::property_tree::write_json;
@@ -33,8 +36,6 @@ string scanFileWithRigel(const State &state, const fo::File &file) {
     try {
         // create request payload as JSON
         ptree pt;
-        ptree children;
-        ptree child1, child2, child3;
 
 //        pt.put("text", file.getContent());
         pt.put("text", "Winnetou was Apache, right?");
@@ -136,6 +137,21 @@ string scanFileWithRigel(const State &state, const fo::File &file) {
 
         result = ostringstream_content.str();
         std::cout << "response string: " << result << "\n";
+
+        // Read json.
+        ptree pt2;
+        boost::iostreams::array_source as(&result[0], result.size());
+        boost::iostreams::stream<boost::iostreams::array_source> is(as);
+        read_json(is, pt2);
+
+
+        std::ostringstream oss;
+        boost::property_tree::ini_parser::write_ini(oss, pt2);
+
+        std::string inifile_text = ostringstream_content.str();
+        std::cout << "ptree = \"" << inifile_text << "\"\n";
+        std::cout << "licenses = \"" << pt2.get<std::string>("licenses") << "\"\n";
+
 
     }
     catch (std::exception &e) {
