@@ -50,14 +50,18 @@ $Usage = "Usage: " . basename($argv[0]) . "
   --mongohost host         :: host for mongo
   --mongousername username :: username for mongo db
   --mongopassword password :: password for mongo db
+  --mongodb databaseName   :: name of the database in mongo db (defaults to file_raw)
   -h  help, this message
 ";
 $upload = ""; // upload id
 $item = ""; // uploadtree id
+$user = $passwd = "";
+$mongohost = $mongouser = $mongopasswd = "";
+$mongodb = "file_raw";
 
 $writeToStdout = true;
 
-$longopts = array("username:", "password:", "container:", "mongohost:", "mongousername:", "mongopassword:");
+$longopts = array("username:", "password:", "container:", "mongohost:", "mongousername:", "mongopassword:", "mongodb");
 $options = getopt("c:u:t:hxX:", $longopts);
 if (empty($options) || !is_array($options))
 {
@@ -65,8 +69,6 @@ if (empty($options) || !is_array($options))
   return 1;
 }
 
-$user = $passwd = "";
-$mongohost = $mongouser = $mongopasswd = "";
 foreach($options as $option => $value)
 {
   switch($option)
@@ -97,6 +99,9 @@ foreach($options as $option => $value)
     case "mongopassword":
       $mongopasswd = $value;
       break;
+    case "mongodb":
+      $mongodb = $value;
+      break;
     default:
       print "unknown option $option\n";
       print $Usage;
@@ -117,9 +122,10 @@ function __outputToMongo(&$entry, $key, $bulk) {
 }
 
 function writeDataToMongo(&$data, $manager){
+  echo "write data with size=".count($data)." via bulk to db";
   $bulk = new MongoDB\Driver\BulkWrite;
   array_walk($data, '__outputToMongo', $bulk);
-  $result = $manager->executeBulkWrite('rigel.file_raw', $bulk);
+  $result = $manager->executeBulkWrite('rigel.'.$mongodb, $bulk);
   printf("Inserted %d documents\n", $result->getInsertedCount());
 }
 
@@ -146,7 +152,7 @@ function getClearedLicensesForDump(DbManager $dbManager, ItemTreeBounds $itemTre
         $p = "$" . count($params);
         $sql_upload = "ut.upload_fk=$p AND ";
     }else{
-        error_log("UploadtreePK was empty");
+        error_log("WARN: UploadtreePK was empty");
     }
 
     $globalScope = DecisionScopes::REPO;
@@ -340,7 +346,7 @@ function handleUpload($uploadtree_pk, $upload_pk, $user, $mongoManager)
     $return_value = read_permission($upload_pk, $user); // check if the user has the permission to read this upload
     if (empty($return_value))
     {
-        error_log("The user '$user' has no permission to read the information of upload $upload_pk\n");
+        error_log("ERR: The user '$user' has no permission to read the information of upload $upload_pk\n");
         return;
     }
 
@@ -387,11 +393,11 @@ function handleAllUploads($user, $mongoManager)
 
             if (strpos($alreadyDoneString, "[$upload_pk]") !== false)
             {
-                error_log("Skip upload_pk=[$upload_pk]");
+                echo "Skip upload_pk=[$upload_pk]";
                 continue;
             }
 
-            error_log("Handle upload_pk=[$upload_pk] (uploadtree_pk=[])");
+            echo "Handle upload_pk=[$upload_pk] (uploadtree_pk=[])";
             try
             {
                 handleUpload('', $upload_pk, $user, $mongoManager);
@@ -399,7 +405,7 @@ function handleAllUploads($user, $mongoManager)
             }
             catch ( Exception $e )
             {
-                error_log("... failed to handle upload_pk=[$upload_pk]");
+                error_log("ERR: failed to handle upload_pk=[$upload_pk]");
             }
         }
     }
@@ -411,6 +417,7 @@ function handleAllUploads($user, $mongoManager)
 
 function dumpAllFiles($mongoManager)
 {
+  $stmt = __METHOD__ . time();
   /* @var $dbManager DbManager */
   $dbManager = $GLOBALS['container']->get('db.manager');
 
