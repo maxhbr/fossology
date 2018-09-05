@@ -458,9 +458,9 @@ $mongoManager = new MongoDB\Driver\Manager($mongourl);
 if (!is_numeric($upload) || (!empty($item) && !is_numeric($item)))
 {
   handleAllUploads($user, $mongoManager);
-  dumpBulkList("uploadtree_a", $mongoManager);
   dumpLicenseData($mongoManager);
   dumpAllFiles($mongoManager);
+  // dumpBulkList("uploadtree_a", $mongoManager);
 }
 else
 {
