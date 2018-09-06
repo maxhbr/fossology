@@ -41,6 +41,6 @@ void bail(int exitval);
 bool processUploadId(const State& state, int uploadId, RigelDatabaseHandler& databaseHandler);
 bool matchPFileWithLicenses(const State& state, unsigned long pFileId, RigelDatabaseHandler& databaseHandler);
 bool matchFileWithLicenses(const State& state, const fo::File& file, RigelDatabaseHandler& databaseHandler);
-bool saveLicenseMatchesToDatabase(const State& state, const vector<LicenseMatch>& matches, unsigned long pFileId, RigelDatabaseHandler& databaseHandler);
+bool saveLicensesToDatabase(const State& state, const vector<string>& matches, unsigned long pFileId, RigelDatabaseHandler& databaseHandler);
 
 #endif // RIGEL_AGENT_UTILS_HPP

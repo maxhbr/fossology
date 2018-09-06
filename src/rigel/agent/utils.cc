@@ -21,155 +21,133 @@
 
 using namespace fo;
 
-State getState(DbManager& dbManager)
-{
-  int agentId = queryAgentId(dbManager);
-  return State(agentId);
+State getState(DbManager &dbManager) {
+    int agentId = queryAgentId(dbManager);
+    return {agentId};
 }
 
-int queryAgentId(DbManager& dbManager)
-{
-  char* COMMIT_HASH = fo_sysconfig(AGENT_NAME, "COMMIT_HASH");
-  char* VERSION = fo_sysconfig(AGENT_NAME, "VERSION");
-  char* agentRevision;
+int queryAgentId(DbManager &dbManager) {
+    char *COMMIT_HASH = fo_sysconfig(AGENT_NAME, "COMMIT_HASH");
+    char *VERSION = fo_sysconfig(AGENT_NAME, "VERSION");
+    char *agentRevision;
 
-  if (!asprintf(&agentRevision, "%s.%s", VERSION, COMMIT_HASH))
-    bail(-1);
+    if (!asprintf(&agentRevision, "%s.%s", VERSION, COMMIT_HASH))
+        bail(-1);
 
-  int agentId = fo_GetAgentKey(dbManager.getConnection(), AGENT_NAME, 0, agentRevision, AGENT_DESC);
-  free(agentRevision);
+    int agentId = fo_GetAgentKey(dbManager.getConnection(), AGENT_NAME, 0, agentRevision, AGENT_DESC);
+    free(agentRevision);
 
-  if (agentId <= 0)
-    bail(1);
+    if (agentId <= 0)
+        bail(1);
 
-  return agentId;
+    return agentId;
 }
 
-int writeARS(const State& state, int arsId, int uploadId, int success, DbManager& dbManager)
-{
-  PGconn* connection = dbManager.getConnection();
-  int agentId = state.getAgentId();
-
-  return fo_WriteARS(connection, arsId, uploadId, agentId, AGENT_ARS, NULL, success);
-}
-
-void bail(int exitval)
-{
-  fo_scheduler_disconnect(exitval);
-  exit(exitval);
-}
-
-bool processUploadId(const State& state, int uploadId, RigelDatabaseHandler& databaseHandler)
-{
-  vector<unsigned long> fileIds = databaseHandler.queryFileIdsForUpload(uploadId);
-
-  bool errors = false;
-#pragma omp parallel
-  {
-    RigelDatabaseHandler threadLocalDatabaseHandler(databaseHandler.spawn());
-
-    size_t pFileCount = fileIds.size();
-#pragma omp for
-    for (size_t it = 0; it < pFileCount; ++it)
-    {
-      if (errors)
-        continue;
-
-      unsigned long pFileId = fileIds[it];
-
-      if (pFileId == 0)
-        continue;
-
-      if (!matchPFileWithLicenses(state, pFileId, threadLocalDatabaseHandler))
-      {
-        errors = true;
-      }
-
-      fo_scheduler_heart(1);
-    }
-  }
-
-  return !errors;
-}
-
-bool matchPFileWithLicenses(const State& state, unsigned long pFileId, RigelDatabaseHandler& databaseHandler)
-{
-  char* pFile = databaseHandler.getPFileNameForFileId(pFileId);
-
-  if (!pFile)
-  {
-    cout << "File not found " << pFileId << endl;
-    bail(8);
-  }
-
-  char* fileName = NULL;
-  {
-#pragma omp critical (repo_mk_path)
-    fileName = fo_RepMkPath("files", pFile);
-  }
-  if (fileName)
-  {
-    fo::File file(pFileId, fileName);
-
-    if (!matchFileWithLicenses(state, file, databaseHandler))
-      return false;
-
-    free(fileName);
-    free(pFile);
-  }
-  else
-  {
-    cout << "PFile not found in repo " << pFileId << endl;
-    bail(7);
-  }
-
-  return true;
-}
-
-bool matchFileWithLicenses(const State& state, const fo::File& file, RigelDatabaseHandler& databaseHandler)
-{
-  string rigelResult = scanFileWithRigel(state, file);
-  vector<string> rigelLicenseNames = extractLicensesFromRigelResult(rigelResult);
-  vector<LicenseMatch> matches = createMatches(rigelLicenseNames);
-  return saveLicenseMatchesToDatabase(state, matches, file.getId(), databaseHandler);
-}
-
-bool saveLicenseMatchesToDatabase(const State& state, const vector<LicenseMatch>& matches, unsigned long pFileId, RigelDatabaseHandler& databaseHandler)
-{
-  for (vector<LicenseMatch>::const_iterator it = matches.begin(); it != matches.end(); ++it)
-  {
-    const LicenseMatch& match = *it;
-    databaseHandler.insertOrCacheLicenseIdForName(match.getLicenseName());
-  }
-
-  if (!databaseHandler.begin())
-    return false;
-
-  for (vector<LicenseMatch>::const_iterator it = matches.begin(); it != matches.end(); ++it)
-  {
-    const LicenseMatch& match = *it;
-
+int writeARS(const State &state, int arsId, int uploadId, int success, DbManager &dbManager) {
+    PGconn *connection = dbManager.getConnection();
     int agentId = state.getAgentId();
-    string rfShortname = match.getLicenseName();
-    unsigned percent = match.getPercentage();
 
-    unsigned long licenseId = databaseHandler.getCachedLicenseIdForName(rfShortname);
+    return fo_WriteARS(connection, arsId, uploadId, agentId, AGENT_ARS, NULL, success);
+}
 
-    if (licenseId == 0)
+void bail(int exitval) {
+    fo_scheduler_disconnect(exitval);
+    exit(exitval);
+}
+
+bool processUploadId(const State &state, int uploadId, RigelDatabaseHandler &databaseHandler) {
+    vector<unsigned long> fileIds = databaseHandler.queryFileIdsForUpload(uploadId);
+
+    bool errors = false;
+#pragma omp parallel
     {
-      databaseHandler.rollback();
-      cout << "cannot get licenseId for shortname '" + rfShortname + "'" << endl;
-      return false;
+        RigelDatabaseHandler threadLocalDatabaseHandler(databaseHandler.spawn());
+
+        size_t pFileCount = fileIds.size();
+#pragma omp for
+        for (size_t it = 0; it < pFileCount; ++it) {
+            if (errors)
+                continue;
+
+            unsigned long pFileId = fileIds[it];
+
+            if (pFileId == 0)
+                continue;
+
+            if (!matchPFileWithLicenses(state, pFileId, threadLocalDatabaseHandler)) {
+                errors = true;
+            }
+
+            fo_scheduler_heart(1);
+        }
     }
 
+    return !errors;
+}
 
-    if (!databaseHandler.saveLicenseMatch(agentId, pFileId, licenseId, percent))
+bool matchPFileWithLicenses(const State &state, unsigned long pFileId, RigelDatabaseHandler &databaseHandler) {
+    char *pFile = databaseHandler.getPFileNameForFileId(pFileId);
+
+    if (!pFile) {
+        cout << "File not found " << pFileId << endl;
+        bail(8);
+    }
+
+    char *fileName = nullptr;
     {
-      databaseHandler.rollback();
-      cout << "failing save licenseMatch" << endl;
-      return false;
-    };
-  }
+#pragma omp critical (repo_mk_path)
+        fileName = fo_RepMkPath("files", pFile);
+    }
+    if (fileName) {
+        fo::File file(pFileId, fileName);
 
-  return databaseHandler.commit();
+        if (!matchFileWithLicenses(state, file, databaseHandler))
+            return false;
+
+        free(fileName);
+        free(pFile);
+    } else {
+        cout << "PFile not found in repo " << pFileId << endl;
+        bail(7);
+    }
+
+    return true;
+}
+
+bool matchFileWithLicenses(const State &state, const fo::File &file, RigelDatabaseHandler &databaseHandler) {
+    string rigelResult = scanFileWithRigel(state, file);
+
+    vector<string> rigelLicenseNames = extractLicensesFromRigelResult(rigelResult);
+    vector<string> mappedRigelLicenses = mapAllLicensesFromRigelToFossology(rigelLicenseNames);
+    return saveLicensesToDatabase(state, mappedRigelLicenses, file.getId(), databaseHandler);
+}
+
+bool saveLicensesToDatabase(const State &state, const vector<string> &licenses, unsigned long pFileId,
+                            RigelDatabaseHandler &databaseHandler) {
+    for (const auto &license : licenses) {
+        databaseHandler.insertOrCacheLicenseIdForName(license);
+    }
+
+    if (!databaseHandler.begin())
+        return false;
+
+    for (const auto &license : licenses) {
+        int agentId = state.getAgentId();
+
+        unsigned long licenseId = databaseHandler.getCachedLicenseIdForName(license);
+
+        if (licenseId == 0) {
+            databaseHandler.rollback();
+            cout << "cannot get licenseId for license '" + license + "'" << endl;
+            return false;
+        }
+
+        if (!databaseHandler.saveLicenseMatch(agentId, pFileId, licenseId)) {
+            databaseHandler.rollback();
+            cout << "failing save licenseMatch" << endl;
+            return false;
+        };
+    }
+
+    return databaseHandler.commit();
 }

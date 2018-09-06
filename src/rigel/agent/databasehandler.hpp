@@ -32,13 +32,13 @@ public:
   RigelDatabaseHandler spawn() const;
 
   std::vector<unsigned long> queryFileIdsForUpload(int uploadId);
-  bool saveLicenseMatch(int agentId, long pFileId, long licenseId, unsigned percentMatch);
+  bool saveLicenseMatch(int agentId, long pFileId, long licenseId);
 
   void insertOrCacheLicenseIdForName(std::string const& rfShortName);
   unsigned long getCachedLicenseIdForName(std::string const& rfShortName) const;
 
 private:
-  unsigned long selectOrInsertLicenseIdForName(std::string rfShortname);
+  unsigned long selectOrInsertLicenseIdForName(std::string const& rfShortName);
 
   std::unordered_map<std::string,long> licenseRefCache;
 };
