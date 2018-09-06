@@ -32,10 +32,8 @@ using namespace std;
 
 string scanFileWithRigel(const State& state, const fo::File& file);
 vector<string> extractLicensesFromRigelResult(string rigelResult);
-string extractLicensePartFromRigelResult(string rigelResult);
-vector<string> splitLicensePart(string licensePart);
-vector<LicenseMatch> createMatches(vector<string> rigelLicenseNames);
-string mapLicenseFromRigelToFossology(string name);
-bool isLicenseCollection(string rigelLicenseName,vector<LicenseMatch>& matches);
+vector<string> mapAllLicensesFromRigelToFossology(vector<string> rigelLicenseNames);
+string mapOneLicenseFromRigelToFossology(string name);
 
 #endif // RIGEL_AGENT_RIGEL_WRAPPER_HPP
+

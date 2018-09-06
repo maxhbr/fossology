@@ -34,23 +34,22 @@ vector<unsigned long> RigelDatabaseHandler::queryFileIdsForUpload(int uploadId)
 }
 
 // TODO: see function saveToDb() from src/monk/agent/database.c
-bool RigelDatabaseHandler::saveLicenseMatch(int agentId, long pFileId, long licenseId, unsigned percentMatch)
+bool RigelDatabaseHandler::saveLicenseMatch(int agentId, long pFileId, long licenseId)
 {
   return dbManager.execPrepared(
     fo_dbManager_PrepareStamement(
       dbManager.getStruct_dbManager(),
       "saveLicenseMatch",
-      "INSERT INTO license_file (agent_fk, pfile_fk, rf_fk, rf_match_pct) VALUES ($1, $2, $3, $4)",
-      int, long, long, unsigned
+      "INSERT INTO license_file (agent_fk, pfile_fk, rf_fk) VALUES ($1, $2, $3)",
+      int, long, long
     ),
     agentId,
     pFileId,
-    licenseId,
-    percentMatch
+    licenseId
   );
 }
 
-unsigned long RigelDatabaseHandler::selectOrInsertLicenseIdForName(string rfShortName)
+unsigned long RigelDatabaseHandler::selectOrInsertLicenseIdForName(std::string const& rfShortName)
 {
   bool success = false;
   unsigned long result = 0;
