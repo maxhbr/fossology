@@ -51,6 +51,7 @@ $Usage = "Usage: " . basename($argv[0]) . "
   --mongousername username :: username for mongo db
   --mongopassword password :: password for mongo db
   --mongodb databaseName   :: name of the database in mongo db (defaults to file_raw)
+  --groupIds id,id,id      :: Ids of groups, from which decisions should be used (by default all decisions are used)
   -h  help, this message
 ";
 $upload = ""; // upload id
@@ -58,6 +59,7 @@ $item = ""; // uploadtree id
 $user = $passwd = "";
 $mongohost = $mongouser = $mongopasswd = "";
 $mongodb = "file_raw";
+$whiteListedGroupIDs = array();
 
 $writeToStdout = true;
 
@@ -65,74 +67,78 @@ $longopts = array("username:", "password:", "container:", "mongohost:", "mongous
 $options = getopt("c:u:t:hxX:", $longopts);
 if (empty($options) || !is_array($options))
 {
-  print $Usage;
-  return 1;
+    print $Usage;
+    return 1;
 }
 
 foreach($options as $option => $value)
 {
-  switch($option)
-  {
-    case 'c': // handled in fo_wrapper
-      break;
-    case 'u':
-      $upload = $value;
-      break;
-    case 't':
-      $item = $value;
-      break;
-    case 'h':
-      print $Usage;
-      return 1;
-    case 'username':
-      $user = $value;
-      break;
-    case 'password':
-      $passwd = $value;
-      break;
-    case "mongohost":
-      $mongohost = $value;
-      break;
-    case "mongousername":
-      $mongouser = $value;
-      break;
-    case "mongopassword":
-      $mongopasswd = $value;
-      break;
-    case "mongodb":
-      $mongodb = $value;
-      break;
-    default:
-      print "unknown option $option\n";
-      print $Usage;
+    switch($option)
+    {
+        case 'c': // handled in fo_wrapper
+            break;
+        case 'u':
+            $upload = $value;
+            break;
+        case 't':
+            $item = $value;
+            break;
+        case 'h':
+            print $Usage;
+            return 1;
+        case 'username':
+            $user = $value;
+            break;
+        case 'password':
+            $passwd = $value;
+            break;
+        case "mongohost":
+            $mongohost = $value;
+            break;
+        case "mongousername":
+            $mongouser = $value;
+            break;
+        case "mongopassword":
+            $mongopasswd = $value;
+            break;
+        case "mongodb":
+            $mongodb = $value;
+            break;
+        case "groupIds":
+            $func = function($string) { return intval ($string); };
+            $whiteListedGroupIDs = array_map($func, explode(",", $value));
+            break;
+        default:
+            print "unknown option $option\n";
+            print $Usage;
   }
 }
 
 if($user == "" ||
-   $passwd == "" ||
-   $mongohost == "" ||
-   $mongouser == "" ||
-   $mongopasswd == ""){
-  error_log("missing command line argument(s)");
-  return 1;
+    $passwd == "" ||
+    $mongohost == "" ||
+    $mongouser == "" ||
+    $mongopasswd == ""){
+    error_log("missing command line argument(s)");
+    return 1;
 }
 
 function __outputToMongo(&$entry, $key, $bulk) {
-  $bulk->insert($entry);
+    $bulk->insert($entry);
 }
 
 function writeDataToMongo(&$data, $manager){
-  echo "write data with size=".count($data)." via bulk to db";
-  $bulk = new MongoDB\Driver\BulkWrite;
-  array_walk($data, '__outputToMongo', $bulk);
-  $result = $manager->executeBulkWrite('rigel.'.$mongodb, $bulk);
-  printf("Inserted %d documents\n", $result->getInsertedCount());
+    echo "write data with size=".count($data)." via bulk to db";
+    $bulk = new MongoDB\Driver\BulkWrite;
+    array_walk($data, '__outputToMongo', $bulk);
+    $result = $manager->executeBulkWrite('rigel.'.$mongodb, $bulk);
+    printf("Inserted %d documents\n", $result->getInsertedCount());
 }
 
 /*
  * based on ClearingDao::getClearedLicenses
  */
-function getClearedLicensesForDump(DbManager $dbManager, ItemTreeBounds $itemTreeBounds)
+function getClearedLicensesForDump(DbManager $dbManager, ItemTreeBounds $itemTreeBounds, $whiteListedGroupIDs = array())
 {
     /* @var $clearingDao ClearingDao */
     $clearingDao = $GLOBALS['container']->get("dao.clearing");
@@ -158,6 +164,9 @@ function getClearedLicensesForDump(DbManager $dbManager, ItemTreeBounds $itemTre
     $globalScope = DecisionScopes::REPO;
     $WIP = DecisionTypes::WIP;
     $IRR = DecisionTypes::IRRELEVANT;
+    if (count($whiteListedGroupIDs) > 0) {
+        $other_clauses = "AND cd.group_fk IN (".implode(",",$whiteListedGroupIDs).")";
+    }
     $decisionsCte = "WITH decision AS (
               SELECT
                 cd.clearing_decision_pk AS id,
@@ -167,7 +176,8 @@ function getClearedLicensesForDump(DbManager $dbManager, ItemTreeBounds $itemTre
                 INNER JOIN $uploadTreeTable ut
                   ON ut.pfile_fk = cd.pfile_fk AND cd.scope = $globalScope OR ut.uploadtree_pk = cd.uploadtree_fk
               WHERE $sql_upload $condition
-                AND cd.decision_type!=$WIP AND cd.decision_type!=$IRR)";
+                AND cd.decision_type!=$WIP AND cd.decision_type!=$IRR)
+                $other_clauses";
 
     $sql = "$decisionsCte
             SELECT
@@ -333,15 +343,15 @@ function getItemTreeBounds($uploadtree_pk, $upload_pk)
     return $uploadDao->getItemTreeBounds($uploadtree_pk, $uploadtreeTablename);
 }
 
-function getLicenseList($uploadtree_pk, $upload_pk, DbManager $dbManager)
+function getLicenseList($uploadtree_pk, $upload_pk, DbManager $dbManager, $whiteListedGroupIDs = array())
 {
   /** @var ItemTreeBounds */
   $itemTreeBounds = getItemTreeBounds($uploadtree_pk, $upload_pk);
 
-  return getClearedLicensesForDump($dbManager, $itemTreeBounds);
+  return getClearedLicensesForDump($dbManager, $itemTreeBounds, $whiteListedGroupIDs);
 }
 
-function handleUpload($uploadtree_pk, $upload_pk, $user, $mongoManager)
+function handleUpload($uploadtree_pk, $upload_pk, $user, $mongoManager, $whiteListedGroupIDs = array())
 {
     $return_value = read_permission($upload_pk, $user); // check if the user has the permission to read this upload
     if (empty($return_value))
@@ -368,11 +378,11 @@ function handleUpload($uploadtree_pk, $upload_pk, $user, $mongoManager)
     }
 
 
-    $clearedLicenses = getLicenseList($uploadtree_pk, $upload_pk, $dbManager);
+    $clearedLicenses = getLicenseList($uploadtree_pk, $upload_pk, $dbManager, $whiteListedGroupIDs);
     writeDataToMongo($clearedLicenses, $mongoManager);
 }
 
-function handleAllUploads($user, $mongoManager)
+function handleAllUploads($user, $mongoManager, $whiteListedGroupIDs = array())
 {
     /* @var $dbManager DbManager */
     $dbManager = $GLOBALS['container']->get('db.manager');
@@ -400,7 +410,7 @@ function handleAllUploads($user, $mongoManager)
             echo "Handle upload_pk=[$upload_pk] (uploadtree_pk=[])";
             try
             {
-                handleUpload('', $upload_pk, $user, $mongoManager);
+                handleUpload('', $upload_pk, $user, $mongoManager, $whiteListedGroupIDs);
                 file_put_contents("already_done_upload_tree_pks", "[$upload_pk]", FILE_APPEND | LOCK_EX);
             }
             catch ( Exception $e )
@@ -457,14 +467,14 @@ $mongoManager = new MongoDB\Driver\Manager($mongourl);
 
 if (!is_numeric($upload) || (!empty($item) && !is_numeric($item)))
 {
-  handleAllUploads($user, $mongoManager);
+  handleAllUploads($user, $mongoManager, $whiteListedGroupIDs);
   dumpLicenseData($mongoManager);
   dumpAllFiles($mongoManager);
   // dumpBulkList("uploadtree_a", $mongoManager);
 }
 else
 {
-  handleUpload($item, $upload, $user, $mongoManager);
+  handleUpload($item, $upload, $user, $mongoManager, $whiteListedGroupIDs);
 }
 
 return 0;
