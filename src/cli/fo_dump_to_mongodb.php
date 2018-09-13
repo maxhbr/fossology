@@ -129,10 +129,11 @@ function __outputToMongo(&$entry, $key, $bulk) {
 }
 
 function writeDataToMongo(&$data, $manager){
+    global $mongodb, $mongocollection;
     echo "write data with size=".count($data)." via bulk to db";
     $bulk = new MongoDB\Driver\BulkWrite;
     array_walk($data, '__outputToMongo', $bulk);
-    $result = $manager->executeBulkWrite("{$mongodb}.{$mongocollection}", $bulk);
+    $result = $manager->executeBulkWrite("${mongodb}.${mongocollection}", $bulk);
     printf("Inserted %d documents\n", $result->getInsertedCount());
 }
 
