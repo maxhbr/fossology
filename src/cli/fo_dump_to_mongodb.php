@@ -64,7 +64,7 @@ $whiteListedGroupIDs = array();
 
 $writeToStdout = true;
 
-$longopts = array("username:", "password:", "container:", "mongohost:", "mongousername:", "mongopassword:", "mongodb:");
+$longopts = array("username:", "password:", "container:", "mongohost:", "mongousername:", "mongopassword:", "mongodb:", "groupIds:");
 $options = getopt("c:u:t:hxX:", $longopts);
 if (empty($options) || !is_array($options))
 {
@@ -466,7 +466,7 @@ if (is_numeric($item) && !is_numeric($upload)) $upload = GetUploadID($item);
 
 account_check($user, $passwd); // check username/password
 
-$mongourl = "mongodb://${mongouser}:${mongopasswd}@${mongohost}/rigel";
+$mongourl = "mongodb://${mongouser}:${mongopasswd}@${mongohost}/${mongodb}";
 $mongoManager = new MongoDB\Driver\Manager($mongourl);
 
 if (!is_numeric($upload) || (!empty($item) && !is_numeric($item)))
