@@ -50,7 +50,7 @@ $Usage = "Usage: " . basename($argv[0]) . "
   --mongohost host         :: host for mongo
   --mongousername username :: username for mongo db
   --mongopassword password :: password for mongo db
-  --mongodb databaseName   :: name of the database in mongo db (defaults to file_raw)
+  --mongodb databaseName   :: name of the database in mongo db (defaults to "rigel")
   --groupIds id,id,id      :: Ids of groups, from which decisions should be used (by default all decisions are used)
   -h  help, this message
 ";
@@ -58,12 +58,13 @@ $upload = ""; // upload id
 $item = ""; // uploadtree id
 $user = $passwd = "";
 $mongohost = $mongouser = $mongopasswd = "";
-$mongodb = "file_raw";
+$mongodb = "rigel";
+$mongocollection = "file_raw";
 $whiteListedGroupIDs = array();
 
 $writeToStdout = true;
 
-$longopts = array("username:", "password:", "container:", "mongohost:", "mongousername:", "mongopassword:", "mongodb");
+$longopts = array("username:", "password:", "container:", "mongohost:", "mongousername:", "mongopassword:", "mongodb:");
 $options = getopt("c:u:t:hxX:", $longopts);
 if (empty($options) || !is_array($options))
 {
@@ -131,7 +132,7 @@ function writeDataToMongo(&$data, $manager){
     echo "write data with size=".count($data)." via bulk to db";
     $bulk = new MongoDB\Driver\BulkWrite;
     array_walk($data, '__outputToMongo', $bulk);
-    $result = $manager->executeBulkWrite('rigel.'.$mongodb, $bulk);
+    $result = $manager->executeBulkWrite("{$mongodb}.{$mongocollection}", $bulk);
     printf("Inserted %d documents\n", $result->getInsertedCount());
 }
 
@@ -166,6 +167,9 @@ function getClearedLicensesForDump(DbManager $dbManager, ItemTreeBounds $itemTre
     $IRR = DecisionTypes::IRRELEVANT;
     if (count($whiteListedGroupIDs) > 0) {
         $other_clauses = "AND cd.group_fk IN (".implode(",",$whiteListedGroupIDs).")";
+    }
+    else {
+        $other_clauses = "";
     }
     $decisionsCte = "WITH decision AS (
               SELECT
@@ -469,7 +473,7 @@ if (!is_numeric($upload) || (!empty($item) && !is_numeric($item)))
 {
   handleAllUploads($user, $mongoManager, $whiteListedGroupIDs);
   dumpLicenseData($mongoManager);
-  dumpAllFiles($mongoManager);
+  // dumpAllFiles($mongoManager);
   // dumpBulkList("uploadtree_a", $mongoManager);
 }
 else
