@@ -50,7 +50,7 @@ $Usage = "Usage: " . basename($argv[0]) . "
   --mongohost host         :: host for mongo
   --mongousername username :: username for mongo db
   --mongopassword password :: password for mongo db
-  --mongodb databaseName   :: name of the database in mongo db (defaults to "rigel")
+  --mongodb databaseName   :: name of the database in mongo db (defaults to rigel)
   --groupIds id,id,id      :: Ids of groups, from which decisions should be used (by default all decisions are used)
   -h  help, this message
 ";
@@ -180,8 +180,8 @@ function getClearedLicensesForDump(DbManager $dbManager, ItemTreeBounds $itemTre
                 INNER JOIN $uploadTreeTable ut
                   ON ut.pfile_fk = cd.pfile_fk AND cd.scope = $globalScope OR ut.uploadtree_pk = cd.uploadtree_fk
               WHERE $sql_upload $condition
-                AND cd.decision_type!=$WIP AND cd.decision_type!=$IRR)
-                $other_clauses";
+                AND cd.decision_type!=$WIP AND cd.decision_type!=$IRR
+                $other_clauses)";
 
     $sql = "$decisionsCte
             SELECT
