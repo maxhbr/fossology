@@ -279,9 +279,12 @@ function dumpBulkList($uploadTreeTableName, $mongoManager)
 
     $matches = array();
     foreach ($bulks as &$row) {
+      $hash = hash("sha256", $row["text"]);
+      
       if(sizeof($row['addedLicenses']) > 0) {
         $matches[] = [
           'source' => 'BULK',
+	  'path' => $hash,
           'text' => $row["text"],
           'licenses' => $row['addedLicenses']
         ];
@@ -290,6 +293,7 @@ function dumpBulkList($uploadTreeTableName, $mongoManager)
       if(sizeof($row['removedLicenses']) > 0) {
         $matches[] = [
           'source' => 'BULK_REMOVE',
+	  'path' => $hash,
           'text' => $row["text"],
           'licenses' => $row['removedLicenses']
         ];
@@ -321,10 +325,13 @@ function dumpLicenseData($mongoManager)
     $matches = array();
     while ($row = $dbManager->fetchArray($result))
     {
+	$hash = hash("sha256", $row["rf_text"]);
+
         if ($row["rf_shortname_parent"] != null)
         {
           $matches[] = [
             'source' => 'LICENSE_INDIRECT_'.$row["usage"],
+	    'path' => $hash,
             'text' => $row["rf_text"],
             'licenses' => [$row["rf_shortname_parent"]]
           ];
@@ -334,6 +341,7 @@ function dumpLicenseData($mongoManager)
           $matches[] = [
             'source' => 'LICENSE',
             'text' => $row["rf_text"],
+	    'path' => $hash,
             'licenses' => [$row["rf_shortname"]]
           ];
         }
