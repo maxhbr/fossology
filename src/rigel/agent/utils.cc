@@ -151,3 +151,27 @@ bool saveLicensesToDatabase(const State &state, const vector<string> &licenses, 
 
     return databaseHandler.commit();
 }
+
+const string getMimeType(const string& filePath)
+{
+    string mimeType = "unknown mimetype";
+    magic_t magicCookie = magic_open(MAGIC_MIME_TYPE);
+    if (magicCookie == NULL)
+    {
+        LOG_FATAL("Failed to initialize magic cookie\n");
+        return mimeType;
+    }
+    if (magic_load(magicCookie,NULL) != 0)
+    {
+        LOG_FATAL("Failed to load magic file: UnMagic\n");
+        return mimeType;
+    }
+
+    mimeType = magic_file(magicCookie, filePath.c_str());
+    LOG_VERBOSE0("Found mimetype by magic: '%s'", mimeType.c_str());
+
+    magic_close(magicCookie);
+
+    return mimeType;
+}
+

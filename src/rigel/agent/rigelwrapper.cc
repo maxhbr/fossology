@@ -39,6 +39,7 @@ string scanFileWithRigel(const State &state, const fo::File &file) {
         ptree requestPtree;
 
         requestPtree.put("text", file.getContent());
+        requestPtree.put("file-type", getMimeType(file.getFileName()));
 //        requestPtree.put("text",
 //                         "The contents of this file are subject to the terms of either the GNU General Public License Version 2 only (GPL) or the Common Development and Distribution License collectively,the License).");
 
@@ -50,8 +51,8 @@ string scanFileWithRigel(const State &state, const fo::File &file) {
 
         boost::asio::io_service io_service;
         string ipAddress = "10.0.2.2"; //"localhost" for loop back or ip address otherwise, i.e.- www.boost.org;
-        string portNum = "5000"; //"8000" for instance;
-        string endpoint = "/model"; //"/api/v1/similar?word=" + wordToQuery;
+        string portNum = "5000";
+        string endpoint = "/model";
         string hostAddress = ipAddress + ":" + portNum;
 
         // Get a list of endpoints corresponding to the server name.
@@ -103,12 +104,12 @@ string scanFileWithRigel(const State &state, const fo::File &file) {
         // Check that response is OK.
         if (!response_stream || http_version.substr(0, 5) != "HTTP/") {
             std::cerr << "invalid response";
-            exit(1);
+            bail(1);
         }
 
         if (status_code != 200) {
             std::cerr << "response did not returned 200 but " << status_code;
-            exit(1);
+            bail(1);
         }
 
         std::stringstream ostringstream_content;
@@ -187,7 +188,7 @@ vector<string> mapAllLicensesFromRigelToFossology(vector<string> rigelLicenseNam
 }
 
 
-string mapOneLicenseFromRigelToFossology(string name) {
+const string mapOneLicenseFromRigelToFossology(string name) {
     /*
     class ClassificationResult(Enum):
     SINGLE = "single"

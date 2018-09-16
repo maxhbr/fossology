@@ -32,7 +32,7 @@ int main(int argc, char** argv)
   State state = getState(dbManager);
 
 //  TODO: remove this only for debug
-//    fo::File file(0, "/vagrant/LICENSE");;
+//    fo::File file(0, "/vagrant/src/rigel/agent/rigel.cc");;
 //    string result = scanFileWithRigel(state, file);
 //    extractLicensesFromRigelResult(result);
 
