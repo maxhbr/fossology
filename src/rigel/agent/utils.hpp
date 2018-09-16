@@ -27,6 +27,7 @@
 #include "files.hpp"
 #include "licensematch.hpp"
 #include "state.hpp"
+#include <magic.h>
 
 extern "C" {
 #include "libfossology.h"
@@ -42,5 +43,6 @@ bool processUploadId(const State& state, int uploadId, RigelDatabaseHandler& dat
 bool matchPFileWithLicenses(const State& state, unsigned long pFileId, RigelDatabaseHandler& databaseHandler);
 bool matchFileWithLicenses(const State& state, const fo::File& file, RigelDatabaseHandler& databaseHandler);
 bool saveLicensesToDatabase(const State& state, const vector<string>& matches, unsigned long pFileId, RigelDatabaseHandler& databaseHandler);
+const string getMimeType(const string& filePath);
 
 #endif // RIGEL_AGENT_UTILS_HPP

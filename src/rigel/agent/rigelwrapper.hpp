@@ -33,7 +33,7 @@ using namespace std;
 string scanFileWithRigel(const State& state, const fo::File& file);
 vector<string> extractLicensesFromRigelResult(string rigelResult);
 vector<string> mapAllLicensesFromRigelToFossology(vector<string> rigelLicenseNames);
-string mapOneLicenseFromRigelToFossology(string name);
+const string mapOneLicenseFromRigelToFossology(string name);
 
 #endif // RIGEL_AGENT_RIGEL_WRAPPER_HPP
 
