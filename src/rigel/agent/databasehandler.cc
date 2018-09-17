@@ -49,7 +49,7 @@ bool RigelDatabaseHandler::saveLicenseMatch(int agentId, long pFileId, long lice
   );
 }
 
-unsigned long RigelDatabaseHandler::selectOrInsertLicenseIdForName(std::string const& rfShortName)
+unsigned long RigelDatabaseHandler::selectLicenseIdForName(std::string const& rfShortName)
 {
   bool success = false;
   unsigned long result = 0;
@@ -65,27 +65,12 @@ unsigned long RigelDatabaseHandler::selectOrInsertLicenseIdForName(std::string c
     QueryResult queryResult = dbManager.execPrepared(
       fo_dbManager_PrepareStamement(
         dbManager.getStruct_dbManager(),
-        "selectOrInsertLicenseIdForName",
-        "WITH "
-          "selectExisting AS ("
+        "selectLicenseIdForName",
             "SELECT rf_pk FROM ONLY license_ref"
-            " WHERE rf_shortname = $1"
-          "),"
-          "insertNew AS ("
-            "INSERT INTO license_ref(rf_shortname, rf_text, rf_detector_type)"
-            " SELECT $1, $2, $3"
-            " WHERE NOT EXISTS(SELECT * FROM selectExisting)"
-            " RETURNING rf_pk"
-          ") "
-
-        "SELECT rf_pk FROM insertNew "
-        "UNION "
-        "SELECT rf_pk FROM selectExisting",
-        char*, char*, int
+            " WHERE rf_shortname = $1",
+        char*
       ),
-      rfShortName.c_str(),
-      "License by Rigel.",
-      3
+      rfShortName.c_str()
     );
 
     success = queryResult && queryResult.getRowCount() > 0;
@@ -104,6 +89,55 @@ unsigned long RigelDatabaseHandler::selectOrInsertLicenseIdForName(std::string c
   return result;
 }
 
+
+unsigned long RigelDatabaseHandler::insertLicenseIdForName(std::string const& rfShortName, std::string const& licenseText)
+{
+  bool success = false;
+  unsigned long result = 0;
+
+  unsigned count = 0;
+  while ((!success) && count++<3)
+  {
+    if (!dbManager.begin())
+      continue;
+
+    dbManager.queryPrintf("LOCK TABLE license_ref");
+
+    QueryResult queryResult = dbManager.execPrepared(
+            fo_dbManager_PrepareStamement(
+                    dbManager.getStruct_dbManager(),
+                    "insertLicenseIdForName",
+                    "insertNew AS ("
+                    "INSERT INTO license_ref(rf_shortname, rf_text, rf_detector_type)"
+                    " SELECT $1, $2, $3"
+                    " WHERE NOT EXISTS(SELECT * FROM selectExisting)"
+                    " RETURNING rf_pk"
+                    ") "
+                    "SELECT rf_pk FROM insertNew ",
+                    char*, char*, int
+            ),
+            rfShortName.c_str(),
+            licenseText.c_str(),
+            3
+    );
+
+    success = queryResult && queryResult.getRowCount() > 0;
+
+    if (success) {
+      success &= dbManager.commit();
+
+      if (success) {
+        result = queryResult.getSimpleResults(0, fo::stringToUnsignedLong)[0];
+      }
+    } else {
+      dbManager.rollback();
+    }
+  }
+
+  return result;
+}
+
+
 RigelDatabaseHandler RigelDatabaseHandler::spawn() const
 {
   DbManager spawnedDbMan(dbManager.spawn());
@@ -114,7 +148,12 @@ void RigelDatabaseHandler::insertOrCacheLicenseIdForName(string const& rfShortNa
 {
   if (getCachedLicenseIdForName(rfShortName)==0)
   {
-    unsigned long licenseId = selectOrInsertLicenseIdForName(rfShortName);
+    unsigned long licenseId = selectLicenseIdForName(rfShortName);
+    if (licenseId == 0)
+    {
+      // TODO get license text from rigel-server
+      licenseId = insertLicenseIdForName(rfShortName, "License by Rigel");
+    }
 
     if (licenseId > 0)
     {

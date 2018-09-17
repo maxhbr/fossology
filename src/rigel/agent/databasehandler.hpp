@@ -38,7 +38,8 @@ public:
   unsigned long getCachedLicenseIdForName(std::string const& rfShortName) const;
 
 private:
-  unsigned long selectOrInsertLicenseIdForName(std::string const& rfShortName);
+  unsigned long selectLicenseIdForName(std::string const& rfShortName);
+  unsigned long insertLicenseIdForName(std::string const& rfShortName, std::string const& licenseText);
 
   std::unordered_map<std::string,long> licenseRefCache;
 };
