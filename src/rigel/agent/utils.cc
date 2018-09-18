@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2015, Siemens AG
+ * Copyright (C) 2014-2018, Siemens AG
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -89,7 +89,7 @@ bool matchPFileWithLicenses(const State &state, unsigned long pFileId, RigelData
     char *pFile = databaseHandler.getPFileNameForFileId(pFileId);
 
     if (!pFile) {
-        cout << "File not found " << pFileId << endl;
+        LOG_ERROR("File not found: %lu\n", &pFileId);
         bail(8);
     }
 
@@ -107,7 +107,7 @@ bool matchPFileWithLicenses(const State &state, unsigned long pFileId, RigelData
         free(fileName);
         free(pFile);
     } else {
-        cout << "PFile not found in repo " << pFileId << endl;
+        LOG_ERROR("PFile not found in repo: %lu\n", &pFileId);
         bail(7);
     }
 
@@ -115,10 +115,7 @@ bool matchPFileWithLicenses(const State &state, unsigned long pFileId, RigelData
 }
 
 bool matchFileWithLicenses(const State &state, const fo::File &file, RigelDatabaseHandler &databaseHandler) {
-    string rigelResult = scanFileWithRigel(state, file);
-
-    vector<string> rigelLicenseNames = extractLicensesFromRigelResult(rigelResult);
-    vector<string> mappedRigelLicenses = mapAllLicensesFromRigelToFossology(rigelLicenseNames);
+    vector<string> mappedRigelLicenses = getLicensePredictionsFromRigel(state, file);
     return saveLicensesToDatabase(state, mappedRigelLicenses, file.getId(), databaseHandler);
 }
 
@@ -138,13 +135,13 @@ bool saveLicensesToDatabase(const State &state, const vector<string> &licenses, 
 
         if (licenseId == 0) {
             databaseHandler.rollback();
-            cout << "cannot get licenseId for license '" + license + "'" << endl;
+            LOG_ERROR("Cannot get licenseId for license: %s\n", license.c_str());
             return false;
         }
 
         if (!databaseHandler.saveLicenseMatch(agentId, pFileId, licenseId)) {
             databaseHandler.rollback();
-            cout << "failing save licenseMatch" << endl;
+            LOG_ERROR("Failed to save licenseMatch\n");
             return false;
         };
     }
