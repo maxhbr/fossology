@@ -35,7 +35,7 @@ public:
   bool saveLicenseMatch(int agentId, long pFileId, long licenseId);
 
   void insertOrCacheLicenseIdForName(std::string const& rfShortName);
-  unsigned long getCachedLicenseIdForName(std::string const& rfShortName) const;
+  long getCachedLicenseIdForName(std::string const& rfShortName) const;
 
 private:
   unsigned long selectLicenseIdForName(std::string const& rfShortName);
