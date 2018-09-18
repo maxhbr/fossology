@@ -89,7 +89,7 @@ bool matchPFileWithLicenses(const State &state, unsigned long pFileId, RigelData
     char *pFile = databaseHandler.getPFileNameForFileId(pFileId);
 
     if (!pFile) {
-        LOG_ERROR("File not found: %lu\n", &pFileId);
+        LOG_ERROR("File not found: %lu\n", pFileId);
         bail(8);
     }
 
@@ -107,7 +107,7 @@ bool matchPFileWithLicenses(const State &state, unsigned long pFileId, RigelData
         free(fileName);
         free(pFile);
     } else {
-        LOG_ERROR("PFile not found in repo: %lu\n", &pFileId);
+        LOG_ERROR("PFile not found in repo: %lu\n", pFileId);
         bail(7);
     }
 
