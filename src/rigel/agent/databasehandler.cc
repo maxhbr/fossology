@@ -24,153 +24,138 @@ using namespace fo;
 using namespace std;
 
 RigelDatabaseHandler::RigelDatabaseHandler(DbManager dbManager) :
-  fo::AgentDatabaseHandler(dbManager)
-{
+        fo::AgentDatabaseHandler(dbManager) {
 }
 
-vector<unsigned long> RigelDatabaseHandler::queryFileIdsForUpload(int uploadId)
-{
-  return queryFileIdsVectorForUpload(uploadId);
+vector<unsigned long> RigelDatabaseHandler::queryFileIdsForUpload(int uploadId) {
+    return queryFileIdsVectorForUpload(uploadId);
 }
 
 // TODO: see function saveToDb() from src/monk/agent/database.c
-bool RigelDatabaseHandler::saveLicenseMatch(int agentId, long pFileId, long licenseId)
-{
-  return dbManager.execPrepared(
-    fo_dbManager_PrepareStamement(
-      dbManager.getStruct_dbManager(),
-      "saveLicenseMatch",
-      "INSERT INTO license_file (agent_fk, pfile_fk, rf_fk) VALUES ($1, $2, $3)",
-      int, long, long
-    ),
-    agentId,
-    pFileId,
-    licenseId
-  );
-}
-
-unsigned long RigelDatabaseHandler::selectLicenseIdForName(std::string const& rfShortName)
-{
-  bool success = false;
-  unsigned long result = 0;
-
-  unsigned count = 0;
-  while ((!success) && count++<3)
-  {
-    if (!dbManager.begin())
-      continue;
-
-    dbManager.queryPrintf("LOCK TABLE license_ref");
-
-    QueryResult queryResult = dbManager.execPrepared(
-      fo_dbManager_PrepareStamement(
-        dbManager.getStruct_dbManager(),
-        "selectLicenseIdForName",
-            "SELECT rf_pk FROM ONLY license_ref"
-            " WHERE rf_shortname = $1",
-        char*
-      ),
-      rfShortName.c_str()
-    );
-
-    success = queryResult && queryResult.getRowCount() > 0;
-
-    if (success) {
-      success &= dbManager.commit();
-
-      if (success) {
-        result = queryResult.getSimpleResults(0, fo::stringToUnsignedLong)[0];
-      }
-    } else {
-      dbManager.rollback();
-    }
-  }
-
-  return result;
-}
-
-
-unsigned long RigelDatabaseHandler::insertLicenseIdForName(std::string const& rfShortName, std::string const& licenseText)
-{
-  bool success = false;
-  unsigned long result = 0;
-
-  unsigned count = 0;
-  while ((!success) && count++<3)
-  {
-    if (!dbManager.begin())
-      continue;
-
-    dbManager.queryPrintf("LOCK TABLE license_ref");
-
-    QueryResult queryResult = dbManager.execPrepared(
+bool RigelDatabaseHandler::saveLicenseMatch(int agentId, long pFileId, long licenseId) {
+    return dbManager.execPrepared(
             fo_dbManager_PrepareStamement(
                     dbManager.getStruct_dbManager(),
-                    "insertLicenseIdForName",
-                    "insertNew AS ("
-                    "INSERT INTO license_ref(rf_shortname, rf_text, rf_detector_type)"
-                    " SELECT $1, $2, $3"
-                    " WHERE NOT EXISTS(SELECT * FROM selectExisting)"
-                    " RETURNING rf_pk"
-                    ") "
-                    "SELECT rf_pk FROM insertNew ",
-                    char*, char*, int
+                    "saveLicenseMatch",
+                    "INSERT INTO license_file (agent_fk, pfile_fk, rf_fk) VALUES ($1, $2, $3)",
+                    int, long, long
             ),
-            rfShortName.c_str(),
-            licenseText.c_str(),
-            3
+            agentId,
+            pFileId,
+            licenseId
     );
+}
 
-    success = queryResult && queryResult.getRowCount() > 0;
+unsigned long RigelDatabaseHandler::selectLicenseIdForName(std::string const &rfShortName) {
+    bool success = false;
+    unsigned long result = 0;
 
-    if (success) {
-      success &= dbManager.commit();
+    unsigned count = 0;
+    while ((!success) && count++ < 3) {
+        if (!dbManager.begin())
+            continue;
 
-      if (success) {
-        result = queryResult.getSimpleResults(0, fo::stringToUnsignedLong)[0];
-      }
+        dbManager.queryPrintf("LOCK TABLE license_ref");
+
+        QueryResult queryResult = dbManager.execPrepared(
+                fo_dbManager_PrepareStamement(
+                        dbManager.getStruct_dbManager(),
+                        "selectLicenseIdForName",
+                        "SELECT rf_pk FROM ONLY license_ref"
+                        " WHERE rf_shortname = $1",
+                        char *
+                ),
+                rfShortName.c_str()
+        );
+
+        success = queryResult && queryResult.getRowCount() > 0;
+
+        if (success) {
+            success &= dbManager.commit();
+
+            if (success) {
+                result = queryResult.getSimpleResults(0, fo::stringToUnsignedLong)[0];
+            }
+        } else {
+            dbManager.rollback();
+        }
+    }
+
+    return result;
+}
+
+
+unsigned long
+RigelDatabaseHandler::insertLicenseIdForName(std::string const &rfShortName, std::string const &licenseText) {
+    bool success = false;
+    unsigned long result = 0;
+
+    unsigned count = 0;
+    while ((!success) && count++ < 3) {
+        if (!dbManager.begin())
+            continue;
+
+        dbManager.queryPrintf("LOCK TABLE license_ref");
+
+        QueryResult queryResult = dbManager.execPrepared(
+                fo_dbManager_PrepareStamement(
+                        dbManager.getStruct_dbManager(),
+                        "insertLicenseIdForName",
+                        "insertNew AS ("
+                        "INSERT INTO license_ref(rf_shortname, rf_text, rf_detector_type)"
+                        " SELECT $1, $2, $3"
+                        " WHERE NOT EXISTS(SELECT * FROM selectExisting)"
+                        " RETURNING rf_pk"
+                        ") "
+                        "SELECT rf_pk FROM insertNew ",
+                        char*, char*, int
+                ),
+                rfShortName.c_str(),
+                licenseText.c_str(),
+                3
+        );
+
+        success = queryResult && queryResult.getRowCount() > 0;
+
+        if (success) {
+            success &= dbManager.commit();
+
+            if (success) {
+                result = queryResult.getSimpleResults(0, fo::stringToUnsignedLong)[0];
+            }
+        } else {
+            dbManager.rollback();
+        }
+    }
+
+    return result;
+}
+
+
+RigelDatabaseHandler RigelDatabaseHandler::spawn() const {
+    DbManager spawnedDbMan(dbManager.spawn());
+    return RigelDatabaseHandler(spawnedDbMan);
+}
+
+void RigelDatabaseHandler::insertOrCacheLicenseIdForName(string const &rfShortName) {
+    if (getCachedLicenseIdForName(rfShortName) == 0) {
+        unsigned long licenseId = selectLicenseIdForName(rfShortName);
+        if (licenseId == 0) {
+            // TODO get license text from rigel-server
+            licenseId = insertLicenseIdForName(rfShortName, "License by Rigel");
+        }
+
+        if (licenseId > 0) {
+            licenseRefCache.insert(std::make_pair(rfShortName, licenseId));
+        }
+    }
+}
+
+long RigelDatabaseHandler::getCachedLicenseIdForName(string const &rfShortName) const {
+    auto findIterator = licenseRefCache.find(rfShortName);
+    if (findIterator != licenseRefCache.end()) {
+        return findIterator->second;
     } else {
-      dbManager.rollback();
+        return 0;
     }
-  }
-
-  return result;
-}
-
-
-RigelDatabaseHandler RigelDatabaseHandler::spawn() const
-{
-  DbManager spawnedDbMan(dbManager.spawn());
-  return RigelDatabaseHandler(spawnedDbMan);
-}
-
-void RigelDatabaseHandler::insertOrCacheLicenseIdForName(string const& rfShortName)
-{
-  if (getCachedLicenseIdForName(rfShortName)==0)
-  {
-    unsigned long licenseId = selectLicenseIdForName(rfShortName);
-    if (licenseId == 0)
-    {
-      // TODO get license text from rigel-server
-      licenseId = insertLicenseIdForName(rfShortName, "License by Rigel");
-    }
-
-    if (licenseId > 0)
-    {
-      licenseRefCache.insert(std::make_pair(rfShortName, licenseId));
-    }
-  }
-}
-
-unsigned long RigelDatabaseHandler::getCachedLicenseIdForName(string const& rfShortName) const
-{
-  std::unordered_map<string,long>::const_iterator findIterator = licenseRefCache.find(rfShortName);
-  if (findIterator != licenseRefCache.end())
-  {
-    return findIterator->second;
-  }
-  else
-  {
-    return 0;
-  }
 }
