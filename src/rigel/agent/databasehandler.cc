@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2015, Siemens AG
+ * Copyright (C) 2014-2018, Siemens AG
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -17,6 +17,7 @@
 
 #include "databasehandler.hpp"
 #include "libfossUtils.hpp"
+#include "rigelwrapper.hpp"
 
 #include <iostream>
 
@@ -31,7 +32,6 @@ vector<unsigned long> RigelDatabaseHandler::queryFileIdsForUpload(int uploadId) 
     return queryFileIdsVectorForUpload(uploadId);
 }
 
-// TODO: see function saveToDb() from src/monk/agent/database.c
 bool RigelDatabaseHandler::saveLicenseMatch(int agentId, long pFileId, long licenseId) {
     return dbManager.execPrepared(
             fo_dbManager_PrepareStamement(
@@ -63,7 +63,7 @@ unsigned long RigelDatabaseHandler::selectLicenseIdForName(std::string const &rf
                         "selectLicenseIdForName",
                         "SELECT rf_pk FROM ONLY license_ref"
                         " WHERE rf_shortname = $1",
-                        char *
+                        char*
                 ),
                 rfShortName.c_str()
         );
@@ -141,8 +141,7 @@ void RigelDatabaseHandler::insertOrCacheLicenseIdForName(string const &rfShortNa
     if (getCachedLicenseIdForName(rfShortName) == 0) {
         unsigned long licenseId = selectLicenseIdForName(rfShortName);
         if (licenseId == 0) {
-            // TODO get license text from rigel-server
-            licenseId = insertLicenseIdForName(rfShortName, "License by Rigel");
+            licenseId = insertLicenseIdForName(rfShortName, getLicenseTextFromRigel(rfShortName));
         }
 
         if (licenseId > 0) {
@@ -151,7 +150,7 @@ void RigelDatabaseHandler::insertOrCacheLicenseIdForName(string const &rfShortNa
     }
 }
 
-long RigelDatabaseHandler::getCachedLicenseIdForName(string const &rfShortName) const {
+unsigned long RigelDatabaseHandler::getCachedLicenseIdForName(string const &rfShortName) const {
     auto findIterator = licenseRefCache.find(rfShortName);
     if (findIterator != licenseRefCache.end()) {
         return findIterator->second;
