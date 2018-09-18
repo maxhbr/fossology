@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2015, Siemens AG
+ * Copyright (C) 2014-2018, Siemens AG
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -30,10 +30,13 @@
 
 using namespace std;
 
-string scanFileWithRigel(const State& state, const fo::File& file);
-vector<string> extractLicensesFromRigelResult(string rigelResult);
+vector<string> getLicensePredictionsFromRigel(const State &state, const fo::File &file);
+vector<string> extractLicensesFromRigelResponse(string rigelResult);
 vector<string> mapAllLicensesFromRigelToFossology(vector<string> rigelLicenseNames);
 const string mapOneLicenseFromRigelToFossology(string name);
+
+string getLicenseTextFromRigel(string licenseName);
+string extractLicenseTextFromRigelResponse(string responseString);
 
 #endif // RIGEL_AGENT_RIGEL_WRAPPER_HPP
 

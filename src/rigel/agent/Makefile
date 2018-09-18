@@ -1,4 +1,4 @@
-# Copyright Siemens AG 2014-2015
+# Copyright Siemens AG 2014-2018
 #
 # Copying and distribution of this file, with or without modification,
 # are permitted in any medium without royalty provided the copyright
@@ -15,7 +15,7 @@ CXXFLAGS_LINK = $(FO_CXXLDFLAGS) -fopenmp -lboost_system -lboost_regex -lmagic
 
 EXE = rigel
 
-OBJECTS = databasehandler.o licensematch.o rigel.o rigelwrapper.o state.o utils.o
+OBJECTS = databasehandler.o licensematch.o rigel.o rigelclient.o rigelwrapper.o state.o utils.o
 COVERAGE = $(OBJECTS:%.o=%_cov.o)
 
 all: $(CXXFOLIB) $(EXE)

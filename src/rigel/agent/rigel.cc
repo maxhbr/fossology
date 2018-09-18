@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2015, Siemens AG
+ * Copyright (C) 2014-2018, Siemens AG
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -15,9 +15,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#include <iostream>
 #include "rigel.hpp"
-#include "rigelwrapper.hpp"
 
 using namespace fo;
 
@@ -31,14 +29,8 @@ int main(int argc, char** argv)
 
   State state = getState(dbManager);
 
-//  TODO: remove this only for debug
-//    fo::File file(0, "/vagrant/src/rigel/agent/rigel.cc");;
-//    string result = scanFileWithRigel(state, file);
-//    extractLicensesFromRigelResult(result);
-
-  while (fo_scheduler_next() != NULL)
+  while (fo_scheduler_next() != nullptr)
   {
-
     int uploadId = atoi(fo_scheduler_current());
 
     if (uploadId == 0) continue;
