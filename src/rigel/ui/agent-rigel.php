@@ -44,10 +44,8 @@ class RigelAgentPlugin extends AgentPlugin
 
   public function isRigelInstalled()
   {
-    // TODO
-    // exec('which rigel', $lines, $returnVar);
-    // return (0==$returnVar);
-    return True;
+    exec('curl -G localhost:82/model', $lines, $returnVar);
+    return (0==$returnVar);
   }
 }
 
