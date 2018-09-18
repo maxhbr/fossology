@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2015, Siemens AG
+ * Copyright (C) 2014-2018, Siemens AG
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -35,7 +35,7 @@ public:
   bool saveLicenseMatch(int agentId, long pFileId, long licenseId);
 
   void insertOrCacheLicenseIdForName(std::string const& rfShortName);
-  long getCachedLicenseIdForName(std::string const& rfShortName) const;
+  unsigned long getCachedLicenseIdForName(std::string const& rfShortName) const;
 
 private:
   unsigned long selectLicenseIdForName(std::string const& rfShortName);
