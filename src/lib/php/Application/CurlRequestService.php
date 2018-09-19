@@ -1,7 +1,5 @@
 <?php
 /*
-Copyright (C) 2014, Siemens AG
-
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
 version 2 as published by the Free Software Foundation.
@@ -18,28 +16,10 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 namespace Fossology\Lib\Application;
 
-class UserInfoTest extends \PHPUnit\Framework\TestCase {
-
-  /** @var UserInfo */
-  private $userInfo;
-
-  protected function setUp() {
-    $this->userInfo = new UserInfo();
-  }
-
-  public function testGetUserId() {
-    $userId = 424;
-
-    $_SESSION['UserId'] = $userId;
-
-    assertThat($this->userInfo->getUserId(), is($userId));
-  }
-
-  public function testGetGroupId() {
-    $groupId = 321;
-
-    $_SESSION['GroupId'] = $groupId;
-
-    assertThat($this->userInfo->getGroupId(), is($groupId));
+class CurlRequestService
+{
+  public function create($url)
+  {
+    return new CurlRequest($url);
   }
 }
