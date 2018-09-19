@@ -55,6 +55,9 @@ sudo a2enconf fossology.conf
 # increase upload size
 sudo /fossology/install/scripts/php-conf-fix.sh --overwrite
 
+# install rigel
+/fossology/install/scripts/install-rigel.sh vagrant vagrant
+ 
 sudo /etc/init.d/apache2 restart
 SCRIPT
 

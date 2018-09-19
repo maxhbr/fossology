@@ -54,10 +54,10 @@ void RigelClient::sendPostRequest(string endPoint, string payload) {
     boost::asio::streambuf request;
     std::ostream request_stream(&request);
 
-    request_stream << "POST " << endPoint << " HTTP/1.1 \r\n";
-    request_stream << "Host:" << ipAddress << ":" << portNum << "\r\n";
-    request_stream << "Accept: application/json \r\n";
-    request_stream << "Content-Type: application/json; charset=utf-8 \r\n";
+    request_stream << "POST " << endPoint << " HTTP/1.1\r\n";
+    request_stream << "Host: " << ipAddress << ":" << portNum << "\r\n";
+    request_stream << "Accept: application/json\r\n";
+    request_stream << "Content-Type: application/json; charset=utf-8\r\n";
     request_stream << "Content-Length: " << payload.length() << "\r\n";
     request_stream << "Connection: close\r\n\r\n";
     request_stream << payload;
@@ -85,11 +85,11 @@ const string RigelClient::readResponse() {
 
     // Check that response is OK.
     if (!response_stream || http_version.substr(0, 5) != "HTTP/") {
-        throw "Invalid response: " + to_string(status_code) + " " + status_message;
+        throw std::runtime_error("Invalid response: " + to_string(status_code) + " " + status_message);
     }
 
     if (status_code != 200) {
-        throw "Response not OK: " + to_string(status_code) + " " + status_message;
+        throw std::runtime_error("Response not OK: " + to_string(status_code) + " " + status_message);
     }
 
     std::stringstream ostringstream_content;
