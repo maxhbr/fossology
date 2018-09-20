@@ -38,7 +38,6 @@ source ${ENV_HOME}/bin/activate
 # Fetch and install requirements
 pip install --upgrade $RIGEL_PACKAGE
 pip install mod_wsgi
-sudo chown -R ${CR_USER}:${CR_GROUP} ${CR_HOME}/rigel/
 
 # Adjust Apache configs to include rigel and use the new mod_wsgi
 echo "# Needed for rigel wsgi server" | sudo tee -a  /etc/apache2/apache2.conf
@@ -66,3 +65,4 @@ sudo /etc/init.d/apache2 restart
 
 # Download default model and preprocessor language libraries for rigel
 rigel-download-data
+sudo chown -R ${CR_USER}:${CR_GROUP} ${CR_HOME}/rigel/
