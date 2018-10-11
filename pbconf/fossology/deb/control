@@ -21,7 +21,7 @@ Description: architecture for analyzing software, development utils
 Package: fossology
 Architecture: any
 Depends: fossology-web, fossology-scheduler, fossology-ununpack, fossology-copyright, fossology-buckets, fossology-mimetype, fossology-delagent, fossology-wgetagent, ${misc:Depends}
-Recommends: fossology-monk, fossology-monkbulk, fossology-decider, fossology-readmeoss, fossology-spdx2, fossology-reuser, fossology-ninka
+Recommends: fossology-monk, fossology-monkbulk, fossology-decider, fossology-readmeoss, fossology-spdx2, fossology-reuser, fossology-ninka, fossology-rigel
 Conflicts: fossology-db (<= 1.4.1), fossology-common (<= 1.4.1)
 Description: open and modular architecture for analyzing software
  The FOSSology project is a web based framework that allows you to
@@ -235,6 +235,18 @@ Description: architecture for analyzing software, ninka
  type identification.
  .
  This package contains the ninka wrapper agent programs and their resources.
+
+Package: fossology-rigel
+Architecture: any
+Depends: fossology-common, ${shlibs:Depends}, ${misc:Depends}
+Description: architecture for analyzing software, rigel
+ The FOSSology project is a web based framework that allows you to
+ upload software to be picked apart and then analyzed by software agents
+ which produce results that are then browsable via the web interface.
+ Existing agents include license analysis, metadata extraction, and MIME
+ type identification.
+ .
+ This package contains the rigel wrapper agent programs and their resources.
 
 Package: fossology-decider
 Architecture: any

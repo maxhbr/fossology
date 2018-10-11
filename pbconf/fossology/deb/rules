@@ -148,6 +148,10 @@ install-arch:
            PREFIX=/usr SYSCONFDIR=/etc/fossology LOCALSTATEDIR=/var \
            -C src/ninka install
 
+	$(MAKE) DESTDIR=$(CURDIR)/debian/fossology-rigel \
+           PREFIX=/usr SYSCONFDIR=/etc/fossology LOCALSTATEDIR=/var \
+           -C src/rigel install
+
 	$(MAKE) DESTDIR=$(CURDIR)/debian/fossology-decider \
            PREFIX=/usr SYSCONFDIR=/etc/fossology LOCALSTATEDIR=/var \
            -C src/decider install
@@ -162,7 +166,7 @@ install-arch:
 	$(MAKE) DESTDIR=$(CURDIR)/debian/fossology-readmeoss \
            PREFIX=/usr SYSCONFDIR=/etc/fossology LOCALSTATEDIR=/var \
            -C src/readmeoss install
-	
+
 	$(MAKE) DESTDIR=$(CURDIR)/debian/fossology-reuser \
            PREFIX=/usr SYSCONFDIR=/etc/fossology LOCALSTATEDIR=/var \
            -C src/reuser install

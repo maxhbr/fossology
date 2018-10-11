@@ -113,7 +113,7 @@ class ClearingView extends FO_Plugin
     if(empty($selectedAgentId))
     {  
       $scanJobProxy = new ScanJobProxy($this->agentsDao,$uploadId);
-      $scanJobProxy->createAgentStatus(array('nomos','monk','ninka'));
+      $scanJobProxy->createAgentStatus(array('nomos','monk','ninka','rigel'));
       $unmaskAgents = $scanJobProxy->getLatestSuccessfulAgentIds();
     }
     $highlightEntries = $this->highlightDao->getHighlightEntries($itemTreeBounds, $licenseId, $unmaskAgents, $highlightId, $clearingId);
