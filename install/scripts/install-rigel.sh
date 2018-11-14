@@ -13,7 +13,8 @@ CR_USER=${1-$USER}
 CR_GROUP=${2-$USER}
 CR_HOME=/home/${CR_USER}
 ENV_HOME=${CR_HOME}/rigel/rigelenv
-RIGEL_PACKAGE=git+https://github.com/mcjaeger/rigel.git@dev
+# RIGEL_PACKAGE=git+https://github.com/mcjaeger/rigel.git@dev
+RIGEL_PACKAGE=file:///rigel
 
 # Install python3.6(deadsnakes repo) and mod_wsgi dependencies
 sudo add-apt-repository ppa:deadsnakes/ppa -y
