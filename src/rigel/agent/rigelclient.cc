@@ -17,7 +17,7 @@
 
 #include "rigelclient.hpp"
 
-RigelClient::RigelClient(boost::asio::io_service &io_service) : RigelClient(io_service, "localhost", "8082") {
+RigelClient::RigelClient(boost::asio::io_service &io_service) : RigelClient(io_service, "localhost", "82") {
 }
 
 RigelClient::RigelClient(boost::asio::io_service &io_service, string ipAddress, string portNum) : ipAddress(ipAddress),
