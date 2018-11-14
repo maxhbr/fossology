@@ -44,10 +44,10 @@ pip install mod_wsgi
 echo "# Needed for rigel wsgi server" | sudo tee -a  /etc/apache2/apache2.conf
 mod_wsgi-express module-config | sudo tee -a  /etc/apache2/apache2.conf
 echo "# Port used by rigel" | sudo tee -a /etc/apache2/ports.conf
-echo "Listen 8082" | sudo tee -a /etc/apache2/ports.conf
+echo "Listen 82" | sudo tee -a /etc/apache2/ports.conf
 
 cat > /etc/apache2/sites-enabled/rigel_apache.conf << EOF
-<VirtualHost *:8082>
+<VirtualHost *:82>
 
     WSGIDaemonProcess rigelapp python-home=${ENV_HOME}/
     WSGIScriptAlias / ${ENV_HOME}/lib/python3.6/site-packages/rigel/server/rigelapp.wsgi
