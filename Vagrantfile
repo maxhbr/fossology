@@ -67,8 +67,6 @@ Vagrant.configure("2") do |config|
   config.vm.post_up_message = $post_up_message
   config.vm.synced_folder ".", "/vagrant", disabled: true
   config.vm.synced_folder ".", "/fossology"
-  config.vm.synced_folder "../mcjaeger-rigel", "/rigel"
-  config.vm.synced_folder "../rigel-models", "/rigel-models"
 
   config.vm.provider "virtualbox" do |vbox|
     vbox.customize ["modifyvm", :id, "--memory", "4096"]
