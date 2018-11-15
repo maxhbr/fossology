@@ -57,8 +57,12 @@ sudo a2enconf fossology.conf
 sudo /fossology/install/scripts/php-conf-fix.sh --overwrite
 
 # install rigel
-/fossology/install/scripts/install-rigel.sh vagrant vagrant
- 
+/fossology/install/scripts/install-rigel.sh vagrant vagrant file:///rigel
+mkdir -p ${CR_HOME}/rigel/models/default_model
+tar -xf /rigel-models/min100max10000.tar -C /tmp/
+cp -r /tmp/data/rigel/models/min100max10000/* ${CR_HOME}/rigel/models/default_model
+rm -rf /tmp/data
+
 sudo /etc/init.d/apache2 restart
 SCRIPT
 
@@ -67,6 +71,9 @@ Vagrant.configure("2") do |config|
   config.vm.post_up_message = $post_up_message
   config.vm.synced_folder ".", "/vagrant", disabled: true
   config.vm.synced_folder ".", "/fossology"
+  config.vm.synced_folder "../mcjaeger-rigel", "/rigel"
+  config.vm.synced_folder "../rigel-models", "/rigel-models"
+
 
   config.vm.provider "virtualbox" do |vbox|
     vbox.customize ["modifyvm", :id, "--memory", "4096"]
