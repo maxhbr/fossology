@@ -25,7 +25,7 @@ sudo apt-get remove libapache2-mod-wsgi
 
 # Use the newly installed python version and install dependencies
 sudo update-alternatives --install /usr/bin/python python /usr/bin/python3.6 100
-wget https://bootstrap.pypa.io/get-pip.py
+wget -c -N https://bootstrap.pypa.io/get-pip.py
 sudo python get-pip.py
 sudo ln -sfn /usr/local/bin/pip /usr/local/bin/pip3
 sudo pip install virtualenv

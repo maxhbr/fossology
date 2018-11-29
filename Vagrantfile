@@ -32,7 +32,7 @@ fi
 PROXYSCRIPT
 
 $build_and_test = <<SCRIPT
-set -o errexit
+set -ex
 
 echo "Provisioning system to compile, test and develop."
 sudo DEBIAN_FRONTEND=noninteractive apt-get update -qq -y
@@ -57,11 +57,14 @@ sudo a2enconf fossology.conf
 sudo /fossology/install/scripts/php-conf-fix.sh --overwrite
 
 # install rigel
+CR_HOME=/home/vagrant
 /fossology/install/scripts/install-rigel.sh vagrant vagrant file:///rigel
 mkdir -p ${CR_HOME}/rigel/models/default_model
 tar -xf /rigel-models/min100max10000.tar -C /tmp/
 cp -r /tmp/data/rigel/models/min100max10000/* ${CR_HOME}/rigel/models/default_model
-rm -rf /tmp/data
+sed -i 's/0.0.0/0.0.0a0/g' ${CR_HOME}/rigel/models/default_model/conf.ini
+chown -R vagrant:vagrant ${CR_HOME}/rigel/models/
+rm -r /tmp/data
 
 sudo /etc/init.d/apache2 restart
 SCRIPT
