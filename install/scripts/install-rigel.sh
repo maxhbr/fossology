@@ -51,6 +51,9 @@ cat > /etc/apache2/sites-enabled/rigel_apache.conf << EOF
     WSGIDaemonProcess rigelapp python-home=${ENV_HOME}/
     WSGIScriptAlias / ${ENV_HOME}/lib/python3.6/site-packages/rigel/server/rigelapp.wsgi
 
+    CustomLog ${CR_HOME}/rigel/logs/access_log common
+    ErrorLog ${CR_HOME}/rigel/logs/error_log
+
     SetEnv RIGEL_DIR ${CR_HOME}/rigel
 
     <Directory ${CR_HOME}/rigel/>
