@@ -100,15 +100,23 @@ RigelDatabaseHandler::insertLicenseIdForName(std::string const &rfShortName, std
         QueryResult queryResult = dbManager.execPrepared(
                 fo_dbManager_PrepareStamement(
                         dbManager.getStruct_dbManager(),
-                        "insertLicenseIdForName",
-                        "insertNew AS ("
-                        "INSERT INTO license_ref(rf_shortname, rf_text, rf_detector_type)"
-                        " SELECT $1, $2, $3"
-                        " WHERE NOT EXISTS(SELECT * FROM selectExisting)"
-                        " RETURNING rf_pk"
-                        ") "
-                        "SELECT rf_pk FROM insertNew ",
-                        char*, char*, int
+			"insertLicenseIdForName",
+			"WITH "
+			  "selectExisting AS ("
+			    "SELECT rf_pk FROM ONLY license_ref"
+			    " WHERE rf_shortname = $1"
+			  "),"
+			  "insertNew AS ("
+			    "INSERT INTO license_ref(rf_shortname, rf_text, rf_detector_type)"
+			    " SELECT $1, $2, $3"
+			    " WHERE NOT EXISTS(SELECT * FROM selectExisting)"
+			    " RETURNING rf_pk"
+			  ") "
+
+			"SELECT rf_pk FROM insertNew "
+			"UNION "
+			"SELECT rf_pk FROM selectExisting",
+			char*, char*, int
                 ),
                 rfShortName.c_str(),
                 licenseText.c_str(),
